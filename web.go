@@ -17,7 +17,7 @@ func frontPage(countC chan int) func(w http.ResponseWriter, r *http.Request) {
 
 	// Ideally this should only show for a second or so while we make our initial fetching of data.
 	// Thereafter it will be replaced by new content
-	currCount := 0
+	latestContent := DefaultFrontPage()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		select {
@@ -56,6 +56,7 @@ func main() {
 	// cpu/memory profiling
 	defer profile.Start(profile.MemProfile).Stop()
 
+	// kick off links fetcher
 	counterC := make(chan int, 1)
 	go timedLog(counterC)
 
