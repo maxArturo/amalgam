@@ -2,37 +2,56 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"time"
 )
 
-// FeedProvider represents a given source of links for consumption. It also
+// Source represents a given source of links for consumption. It also
 // contains relevant information for fetching and parsing links.
-type FeedProvider struct {
-	name          string
-	apiURL        string
-	links         []newsLink
-	parseResponse func([]byte) bool
+type Source struct {
+	Name          string
+	Abbreviation  string
+	APIURL        string
+	Links         []newsLink
+	LastUpdatedAt time.Time
+	ParseResponse func([]byte) ([]newsLink, error)
 }
 
-func (p *FeedProvider) getLinks(c chan bool) {
-	c <- true
+// Start kicks off the fetching and periodic refreshing of links with a default
+// 20 minute interval between fetching of new links.
+func (p *Source) Start() {
+	p.StartWithDuration(time.Minute * 20)
 }
 
-func (p *FeedProvider) startTimer(c chan []byte) {
-	ticker := time.NewTicker(60 * time.Second)
+// StartWithDuration kicks off the fetching and periodic refreshing of links with
+// a given interval. Minimum is one second.
+func (p *Source) StartWithDuration(duration time.Duration) {
+	if duration < time.Minute {
+		duration = time.Minute
+	}
+
+	ticker := time.NewTicker(duration)
 
 	go func() {
 		for range ticker.C {
-			fmt.Println("querying %s...", p.name)
-			// TODO query HN api instead of counting up
-			// 	i++
-			// 	select {
-			// 	case c <- i:
-			// 	default:
-			// 		// empty out the single-buffer channel to keep it updated with the latest data
-			// 		<-c
-			// 		c <- i
-			// 	}
+			fmt.Println("querying %s...", p.Name)
+			p.fetch()
 		}
 	}()
+}
+
+func (p *Source) fetch() {
+	resp, err := http.Get(p.APIURL)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error parsing response body", err)
+	}
+
+	p.Links = p.ParseResponse(body)
 }

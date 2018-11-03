@@ -7,13 +7,15 @@ type FrontPage struct {
 }
 
 type newsLink struct {
-	title  string
-	url    string
-	source string
+	Title        string
+	URL          string
+	Source       string
+	CommentsURL  string
+	CommentCount string
 }
 
 // DefaultFrontPage provides the default template for the landing page.
 // It should be replaced with content fetched from providers.
 func DefaultFrontPage() *FrontPage {
-	return &FrontPage{title: "Amalgam", links: []newsLink{{title: "Loading..."}}}
+	return &FrontPage{title: "Amalgam", links: []newsLink{{Title: "Loading..."}}}
 }

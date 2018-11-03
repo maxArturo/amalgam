@@ -1,5 +1,5 @@
-// Package amalgam provides a brutally simple webserver for no-nonsense news aggregator.
-// It aims for lightweight hardware requirements, extensibility, and brutal simplicity.
+// Package amalgam provides a brutally simple webserver for no-nonsense news aggregation.
+// It aims for lightweight hardware requirements, extensibility, and simplicity.
 
 package main
 
