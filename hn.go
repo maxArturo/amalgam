@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 )
 
 type hackerNewsResponse struct {
@@ -16,33 +19,52 @@ type hnHit struct {
 	objID        string `json: "objectID"`
 }
 
-// HackerNewsSource represents the Hacker News API source.
-func HackerNewsSource() *Source {
-	return &Source{
-		Name:          "Hacker News",
-		Abbreviation:  "HN",
-		APIURL:        "https://hn.algolia.com/api/v1/search?tags=front_page",
-		ParseResponse: parseResponse,
+type hackerNews struct {
+	name   string
+	APIURL string
+}
+
+func (s *hackerNews) Fetch() (*[]NewsLink, error) {
+	resp, err := http.Get(s.APIURL)
+	if err != nil {
+		log.Println("Error fetching url", s.APIURL, err)
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return parseResponse(body)
+}
+
+func (s *hackerNews) Name() string {
+	return s.name
+}
+
+func hackerNewsSource() *hackerNews {
+	return &hackerNews{
+		name:   "Hacker News",
+		APIURL: "https://hn.algolia.com/api/v1/search?tags=front_page",
 	}
 }
 
-func parseResponse(body []byte) ([]newsLink, error) {
+func parseResponse(body []byte) (*[]NewsLink, error) {
 	s := &hackerNewsResponse{}
 	err := json.Unmarshal(body, s)
 	if err != nil {
-		return []newsLink{}, err
+		return nil, err
 	}
 
-	links := []newsLink{}
+	links := []NewsLink{}
 	for _, link := range s.hits {
-		commentURL, _ := fmt.Printf("https://news.ycombinator.com/item?id=%s", link.objID)
+		commentURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", link.objID)
 		links := append(links,
-			newsLink{
+			NewsLink{
 				Title:        link.title,
 				URL:          link.url,
-				Source:       "Hacker News",
 				CommentCount: link.commentCount,
 				CommentsURL:  commentURL})
 	}
-	return links, nil
+	return &links, nil
 }

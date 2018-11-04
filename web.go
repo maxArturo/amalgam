@@ -7,59 +7,83 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/pkg/profile"
 )
 
-func frontPage(countC chan int) func(w http.ResponseWriter, r *http.Request) {
-	// TODO all references to counts will end up being links and content.
+const (
+	numFetchers     = 5
+	errTimeoutDelay = 5
+)
 
-	// Ideally this should only show for a second or so while we make our initial fetching of data.
-	// Thereafter it will be replaced by new content
-	latestContent := DefaultFrontPage()
+type update struct {
+	name  string
+	links *[]NewsLink
+}
+
+func defaultFrontPage() string {
+	return "<h1>Loading content...</h1>"
+}
+
+func frontPageHandler(newContent chan string) func(w http.ResponseWriter, r *http.Request) {
+	latestContent := defaultFrontPage()
+
+	go func() {
+		for content := range newContent {
+			latestContent = content
+		}
+	}()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case newCount := <-countC:
-			currCount = newCount
-			fmt.Println("new count! updating page")
-		}
-
 		fmt.Println("handling request")
-		fmt.Fprintf(w, "<h1>%s</h1><div>%s. <b>You are on counter: %d</b></div>", []byte("Hello"), []byte("There aye!"), currCount)
+		fmt.Fprintf(w, latestContent)
 	}
 }
 
-func timedLog(c chan int) {
-	fmt.Println("starting timer...")
-	i := 1
+func contentHandler(in chan update) chan string {
+	base := "<h1> links! </h1>"
+	out := make(chan string)
 
-	ticker := time.NewTicker(1 * time.Second)
 	go func() {
-		for range ticker.C {
-			fmt.Printf("on iteration: %d\n", i)
-			i++
-
-			select {
-			case c <- i:
-			default:
-				// empty out the single-buffer channel to keep it updated with the latest data
-				<-c
-				c <- i
-			}
+		out <- base
+		for newContent := range in {
+			out <- base + newContent.name
 		}
 	}()
+	return out
+}
+
+// Fetcher waits on an incoming channel for Sources and fetches them, to update with new links.
+// It reports out on the outgoing and content channels for completed Sources.
+func Fetcher(in chan Sourcer, out chan Sourcer, content chan *update) {
+	for src := range in {
+		links, err := src.Fetch()
+		out <- src
+		content <- &update{name: src.Name(), links: links}
+	}
 }
 
 func main() {
-	// cpu/memory profiling
+	// memory profiling
 	defer profile.Start(profile.MemProfile).Stop()
 
-	// kick off links fetcher
-	counterC := make(chan int, 1)
-	go timedLog(counterC)
+	// create our pending/done/new content channels
+	pending, done, updated := make(chan Sourcer), make(chan Sourcer), make(chan *update)
 
-	http.HandleFunc("/view", frontPage(counterC))
+	// launch fetchers
+	for i := 0; i < numFetchers; {
+		go Fetcher(pending, done, updated)
+	}
+
+	// handle new content coming in
+	newContent := contentHandler(updated)
+
+	go func() {
+		for s := range done {
+
+		}
+	}()
+
+	http.HandleFunc("/", frontPageHandler(newContent))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
