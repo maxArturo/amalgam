@@ -8,15 +8,16 @@ import (
 	"net/http"
 )
 
+// HackerNewsResponse represents the Hacker News website source for news links.
 type hackerNewsResponse struct {
-	hits []hnHit `json: "hits"`
+	Hits []hnHit `json:"hits"`
 }
 
 type hnHit struct {
-	title        string `json: "title"`
-	url          string `json: "url"`
-	commentCount string `json: "num_comments"`
-	objID        string `json: "objectID"`
+	Title        string `json:"title"`
+	URL          string `json:"url"`
+	CommentCount int    `json:"num_comments"`
+	ObjID        string `json:"objectID"`
 }
 
 type hackerNews struct {
@@ -25,6 +26,13 @@ type hackerNews struct {
 }
 
 func (s *hackerNews) Fetch() (*[]NewsLink, error) {
+	// fmt.Println("mock querying for HN API!")
+	// return &[]NewsLink{
+	// 	NewsLink{Title: "test link", URL: "http://duckduckgo.com"},
+	// 	NewsLink{Title: fmt.Sprintf("something: %d", rand.Intn(4)), URL: "http://duckduckgo.com"},
+	// }, nil
+
+	log.Println("querying HN api...")
 	resp, err := http.Get(s.APIURL)
 	if err != nil {
 		log.Println("Error fetching url", s.APIURL, err)
@@ -33,6 +41,7 @@ func (s *hackerNews) Fetch() (*[]NewsLink, error) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		log.Println("Error reading HN response", s.APIURL, err)
 		return nil, err
 	}
 	return parseResponse(body)
@@ -53,17 +62,19 @@ func parseResponse(body []byte) (*[]NewsLink, error) {
 	s := &hackerNewsResponse{}
 	err := json.Unmarshal(body, s)
 	if err != nil {
+
+		log.Println("Error pasing HN response JSON", err)
 		return nil, err
 	}
 
 	links := []NewsLink{}
-	for _, link := range s.hits {
-		commentURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", link.objID)
-		links := append(links,
+	for _, link := range s.Hits {
+		commentURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", link.ObjID)
+		links = append(links,
 			NewsLink{
-				Title:        link.title,
-				URL:          link.url,
-				CommentCount: link.commentCount,
+				Title:        link.Title,
+				URL:          link.URL,
+				CommentCount: link.CommentCount,
 				CommentsURL:  commentURL})
 	}
 	return &links, nil

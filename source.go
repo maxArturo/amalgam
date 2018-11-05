@@ -1,5 +1,13 @@
 package main
 
+import (
+	"fmt"
+	"time"
+)
+
+const errTimeoutDelay = 5
+const fetchInterval = 50
+
 // Sourcer defines the only requirement from a source: a Fetch() function that returns
 // a slice of NewsLink structs.
 type Sourcer interface {
@@ -12,5 +20,19 @@ type NewsLink struct {
 	Title        string
 	URL          string
 	CommentsURL  string
-	CommentCount string
+	CommentCount int
+}
+
+// newsSource represents the higher-level source of links for rendering.
+type newsSource struct {
+	source      Sourcer
+	links       *[]NewsLink
+	errCount    int
+	lastUpdated time.Time
+}
+
+func (s *newsSource) sleep(done chan *newsSource) {
+	fmt.Println("sleeping for some seconds...")
+	time.Sleep(fetchInterval*time.Second + time.Duration(s.errCount))
+	done <- s
 }

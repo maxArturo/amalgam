@@ -11,15 +11,7 @@ import (
 	"github.com/pkg/profile"
 )
 
-const (
-	numFetchers     = 5
-	errTimeoutDelay = 5
-)
-
-type update struct {
-	name  string
-	links *[]NewsLink
-}
+const numFetchers = 5
 
 func defaultFrontPage() string {
 	return "<h1>Loading content...</h1>"
@@ -27,10 +19,11 @@ func defaultFrontPage() string {
 
 func frontPageHandler(newContent chan string) func(w http.ResponseWriter, r *http.Request) {
 	latestContent := defaultFrontPage()
+	defaultHeader := "<h1>LInks@@!!</h1>"
 
 	go func() {
 		for content := range newContent {
-			latestContent = content
+			latestContent = defaultHeader + content
 		}
 	}()
 
@@ -40,14 +33,20 @@ func frontPageHandler(newContent chan string) func(w http.ResponseWriter, r *htt
 	}
 }
 
-func contentHandler(in chan update) chan string {
-	base := "<h1> links! </h1>"
+func contentHandler(in chan *newsSource) chan string {
 	out := make(chan string)
 
 	go func() {
-		out <- base
-		for newContent := range in {
-			out <- base + newContent.name
+		for src := range in {
+			// TODO make this use templates instead
+			content := "<ul>"
+			for _, link := range *src.links {
+				content = content + fmt.Sprintf("<li><a href=%s>%s</a>. <a href=%s>[%d]</a> </li>",
+					link.URL, link.Title, link.CommentsURL, link.CommentCount)
+			}
+			content = content + "</ul>"
+
+			out <- content
 		}
 	}()
 	return out
@@ -55,11 +54,16 @@ func contentHandler(in chan update) chan string {
 
 // Fetcher waits on an incoming channel for Sources and fetches them, to update with new links.
 // It reports out on the outgoing and content channels for completed Sources.
-func Fetcher(in chan Sourcer, out chan Sourcer, content chan *update) {
-	for src := range in {
-		links, err := src.Fetch()
-		out <- src
-		content <- &update{name: src.Name(), links: links}
+func Fetcher(in chan *newsSource, out chan *newsSource, content chan *newsSource) {
+	for linkSrc := range in {
+		links, err := linkSrc.source.Fetch()
+		if err != nil {
+			linkSrc.errCount++
+		} else {
+			linkSrc.links = links
+			content <- linkSrc
+		}
+		out <- linkSrc
 	}
 }
 
@@ -68,10 +72,11 @@ func main() {
 	defer profile.Start(profile.MemProfile).Stop()
 
 	// create our pending/done/new content channels
-	pending, done, updated := make(chan Sourcer), make(chan Sourcer), make(chan *update)
+	pending, done, updated := make(chan *newsSource),
+		make(chan *newsSource), make(chan *newsSource)
 
 	// launch fetchers
-	for i := 0; i < numFetchers; {
+	for i := 0; i < numFetchers; i++ {
 		go Fetcher(pending, done, updated)
 	}
 
@@ -80,8 +85,13 @@ func main() {
 
 	go func() {
 		for s := range done {
-
+			go s.sleep(pending)
 		}
+	}()
+
+	// Finally! Send the sources into pending
+	go func() {
+		pending <- &newsSource{source: hackerNewsSource()}
 	}()
 
 	http.HandleFunc("/", frontPageHandler(newContent))
