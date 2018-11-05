@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/pkg/profile"
 )
@@ -68,6 +69,11 @@ func Fetcher(in chan *newsSource, out chan *newsSource, content chan *newsSource
 }
 
 func main() {
+	port := os.Getenv("PORT")
+
+	if port == "" {
+		log.Fatal("$PORT must be set")
+	}
 	// memory profiling
 	defer profile.Start(profile.MemProfile).Stop()
 
@@ -95,5 +101,5 @@ func main() {
 	}()
 
 	http.HandleFunc("/", frontPageHandler(newContent))
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
