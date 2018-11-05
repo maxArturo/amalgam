@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"time"
 )
 
 const errTimeoutDelay = 5
-const fetchInterval = 50
+const fetchInterval = 60
 
 // Sourcer defines the only requirement from a source: a Fetch() function that returns
 // a slice of NewsLink structs.
@@ -32,7 +32,7 @@ type newsSource struct {
 }
 
 func (s *newsSource) sleep(done chan *newsSource) {
-	fmt.Println("sleeping for some seconds...")
+	log.Println("sleeping for some seconds...")
 	time.Sleep(fetchInterval*time.Second + time.Duration(s.errCount))
 	done <- s
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/profile"
 )
 
-const numFetchers = 5
+const numFetchers = 2
 
 func defaultFrontPage() string {
 	return "<h1>Loading content...</h1>"

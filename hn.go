@@ -26,12 +26,6 @@ type hackerNews struct {
 }
 
 func (s *hackerNews) Fetch() (*[]NewsLink, error) {
-	// fmt.Println("mock querying for HN API!")
-	// return &[]NewsLink{
-	// 	NewsLink{Title: "test link", URL: "http://duckduckgo.com"},
-	// 	NewsLink{Title: fmt.Sprintf("something: %d", rand.Intn(4)), URL: "http://duckduckgo.com"},
-	// }, nil
-
 	log.Println("querying HN api...")
 	resp, err := http.Get(s.APIURL)
 	if err != nil {
