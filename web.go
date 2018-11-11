@@ -98,6 +98,7 @@ func main() {
 	// Finally! Send the sources into pending
 	go func() {
 		pending <- &newsSource{source: hackerNewsSource()}
+		pending <- &newsSource{source: newRedditSource()}
 	}()
 
 	http.HandleFunc("/", frontPageHandler(newContent))
