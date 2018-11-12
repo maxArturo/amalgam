@@ -1,43 +1,78 @@
 package main
 
 import (
-	"github.com/turnage/graw/reddit"
-	"time"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 )
 
-type redditSource struct {
-	name    string
-	harvest reddit.Harvest
+// redditResponse represents the icoming payload from Reddit.
+type redditResponse struct {
+	Data []hnHit `json:"data"`
 }
 
-func (s *redditSource) Fetch() (*[]NewsLink, error) {
-	links := []NewsLink{}
-	posts := s.harvest.Posts
+type hnHit struct {
+	Title        string `json:"title"`
+	URL          string `json:"url"`
+	CommentCount int    `json:"num_comments"`
+	ObjID        string `json:"objectID"`
+}
 
-	for _, post := range posts {
-		links = append(links,
-			NewsLink{
-				Title:        post.Title,
-				URL:          post.URL,
-				CommentCount: len(post.Replies),
-				CommentsURL:  post.Permalink},
-		)
+type redditPost struct {
+}
+
+type reddit struct {
+	name   string
+	APIURL string
+}
+
+func (s *reddit) Fetch() (*[]NewsLink, error) {
+	log.Println("querying reddit api...")
+	resp, err := http.Get(s.APIURL)
+	if err != nil {
+		log.Println("Error fetching url", s.APIURL, err)
+		return nil, err
 	}
 
-	return &links, nil
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println("Error reading reddit response", s.APIURL, err)
+		return nil, err
+	}
+	return parseResponse(body)
 }
 
-func (s *redditSource) Name() string {
+func (s *reddit) Name() string {
 	return s.name
 }
 
-func newRedditSource() *redditSource {
-	rate := 60 * time.Second
-	script, _ := reddit.NewScript("amalgam:reddit_script:0.0.1 by /u/aadvark_dev", rate)
-	harvest, _ := script.Listing("r/programming/hot", "")
-
-	return &redditSource{
-		name:    "reddit",
-		harvest: harvest,
+func redditSource() *reddit {
+	return &reddit{
+		name:   "reddit",
+		APIURL: "https://www.reddit.com/r/programming/hot/.json?top=20",
 	}
+}
+
+func parseResponse(body []byte) (*[]NewsLink, error) {
+	s := &hackerNewsResponse{}
+	err := json.Unmarshal(body, s)
+	if err != nil {
+
+		log.Println("Error pasing HN response JSON", err)
+		return nil, err
+	}
+
+	links := []NewsLink{}
+	for _, link := range s.Hits {
+		commentURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", link.ObjID)
+		links = append(links,
+			NewsLink{
+				Title:        link.Title,
+				URL:          link.URL,
+				CommentCount: link.CommentCount,
+				CommentsURL:  commentURL})
+	}
+	return &links, nil
 }
