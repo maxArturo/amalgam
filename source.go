@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"time"
 )
 
@@ -31,10 +30,7 @@ type newsSource struct {
 	lastUpdated time.Time
 }
 
-func (s *newsSource) sleep(done chan *newsSource) {
-	log.Printf("[SLEEP] sleeping %s for %d seconds", s.source.Name(), fetchInterval*time.Second+time.Duration(s.errCount))
-	log.Printf("[SLEEP] current err count for %s: %d", s.source.Name(), s.errCount)
+func (s *newsSource) sleep(done chan newsSource) {
 	time.Sleep(fetchInterval*time.Second + time.Duration(s.errCount))
-	log.Printf("[SLEEP] %s waking up. adding to pending queue...", s.source.Name())
-	done <- s
+	done <- *s
 }
