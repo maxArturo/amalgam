@@ -1,27 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/valyala/fastjson"
 )
-
-// redditResponse represents the icoming payload from Reddit.
-type redditResponse struct {
-	Data []hnHit `json:"data"`
-}
-
-type hnHit struct {
-	Title        string `json:"title"`
-	URL          string `json:"url"`
-	CommentCount int    `json:"num_comments"`
-	ObjID        string `json:"objectID"`
-}
-
-type redditPost struct {
-}
 
 type reddit struct {
 	name   string
@@ -29,8 +15,14 @@ type reddit struct {
 }
 
 func (s *reddit) Fetch() (*[]NewsLink, error) {
-	log.Println("querying reddit api...")
-	resp, err := http.Get(s.APIURL)
+	log.Println("[REDDIT] querying reddit api...")
+	req, err := http.NewRequest("GET", s.APIURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "amalgam:reddit_script:0.0.1 by /u/aadvark_dev")
+	resp, err := http.DefaultClient.Do(req)
+
 	if err != nil {
 		log.Println("Error fetching url", s.APIURL, err)
 		return nil, err
@@ -41,7 +33,7 @@ func (s *reddit) Fetch() (*[]NewsLink, error) {
 		log.Println("Error reading reddit response", s.APIURL, err)
 		return nil, err
 	}
-	return parseResponse(body)
+	return s.parseResponse(body)
 }
 
 func (s *reddit) Name() string {
@@ -55,24 +47,28 @@ func redditSource() *reddit {
 	}
 }
 
-func parseResponse(body []byte) (*[]NewsLink, error) {
-	s := &hackerNewsResponse{}
-	err := json.Unmarshal(body, s)
+func (s *reddit) parseResponse(body []byte) (*[]NewsLink, error) {
+	var p fastjson.Parser
+	v, err := p.Parse(string(body))
 	if err != nil {
-
-		log.Println("Error pasing HN response JSON", err)
+		log.Println("Error reading reddit response", s.APIURL, err)
 		return nil, err
 	}
 
+	listingArr := v.GetArray("data", "children")
 	links := []NewsLink{}
-	for _, link := range s.Hits {
-		commentURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", link.ObjID)
+
+	for _, listing := range listingArr {
+		commentURL := fmt.Sprintf("https://www.reddit.com%s",
+			string(listing.GetStringBytes("data", "permalink")))
+
 		links = append(links,
 			NewsLink{
-				Title:        link.Title,
-				URL:          link.URL,
-				CommentCount: link.CommentCount,
+				Title:        string(listing.GetStringBytes("data", "title")),
+				URL:          string(listing.GetStringBytes("data", "url")),
+				CommentCount: listing.GetInt("data", "num_comments"),
 				CommentsURL:  commentURL})
 	}
+
 	return &links, nil
 }

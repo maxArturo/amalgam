@@ -36,3 +36,7 @@
   root-package = "github.com/maxArturo/amalgam"
   go-version = "1.11.1"
   install = [ "./..." ]
+
+[[constraint]]
+  name = "github.com/valyala/fastjson"
+  version = "1.0.0"
