@@ -26,7 +26,7 @@ type hackerNews struct {
 }
 
 func (s *hackerNews) Fetch() (*[]NewsLink, error) {
-	log.Println("querying HN api...")
+	log.Println("[HN] querying HN api...")
 	resp, err := http.Get(s.APIURL)
 	if err != nil {
 		log.Println("Error fetching url", s.APIURL, err)
@@ -38,7 +38,7 @@ func (s *hackerNews) Fetch() (*[]NewsLink, error) {
 		log.Println("Error reading HN response", s.APIURL, err)
 		return nil, err
 	}
-	return parseResponse(body)
+	return s.parseResponse(body)
 }
 
 func (s *hackerNews) Name() string {
@@ -52,9 +52,9 @@ func hackerNewsSource() *hackerNews {
 	}
 }
 
-func parseResponse(body []byte) (*[]NewsLink, error) {
-	s := &hackerNewsResponse{}
-	err := json.Unmarshal(body, s)
+func (s *hackerNews) parseResponse(body []byte) (*[]NewsLink, error) {
+	resp := &hackerNewsResponse{}
+	err := json.Unmarshal(body, resp)
 	if err != nil {
 
 		log.Println("Error pasing HN response JSON", err)
@@ -62,7 +62,7 @@ func parseResponse(body []byte) (*[]NewsLink, error) {
 	}
 
 	links := []NewsLink{}
-	for _, link := range s.Hits {
+	for _, link := range resp.Hits {
 		commentURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", link.ObjID)
 		links = append(links,
 			NewsLink{

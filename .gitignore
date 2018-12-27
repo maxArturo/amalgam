@@ -13,3 +13,7 @@
 
 # Output of profiling pdfs
 *.pdf
+
+# project binary
+amalgam
+

@@ -9,9 +9,23 @@
   revision = "5b67d428864e92711fcbd2f8629456121a56d91f"
   version = "v1.2.1"
 
+[[projects]]
+  digest = "1:ac6bf759a8e921d2983758846434ecaed1d152cbd63a335a78b9c89d28c67249"
+  name = "github.com/valyala/fastjson"
+  packages = [
+    ".",
+    "fastfloat",
+  ]
+  pruneopts = "UT"
+  revision = "37952265e1c05c1765a0b8d01efbde0b5b4e3913"
+  version = "v1.0.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = ["github.com/pkg/profile"]
+  input-imports = [
+    "github.com/pkg/profile",
+    "github.com/valyala/fastjson",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
