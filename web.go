@@ -31,7 +31,6 @@ func frontPageHandler(newContent chan string) func(w http.ResponseWriter, r *htt
 	}()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("handling request")
 		fmt.Fprintf(w, latestContent)
 	}
 }
@@ -57,8 +56,6 @@ func contentHandler(in chan *newsSource) chan string {
 
 	go func() {
 		for s := range in {
-			log.Printf("[CONTENT HANDLER] adding links to map for: %s", s.source.Name())
-
 			latestLinks[s.source.Name()] = s.links
 			out <- formatLinks(&latestLinks)
 		}
@@ -68,12 +65,12 @@ func contentHandler(in chan *newsSource) chan string {
 
 // Fetcher waits on an incoming channel for Sources and fetches them, to update with new links.
 // It reports out on the outgoing and content channels for completed Sources.
-func Fetcher(label int, in chan newsSource, out chan *newsSource, content chan *newsSource) {
+func Fetcher(label int, in chan *newsSource, out chan *newsSource, content chan *newsSource) {
 	for src := range in {
 		log.Printf("[FETCH] fetcher no %d, fetching for %s", label, src.source.Name())
 		newLinks, err := src.source.Fetch()
-		log.Printf("[FETCH] and check it, for fetcher no %d, this is still the src: %s", label, src.source.Name())
 		if err != nil {
+			log.Println("[FETCH] Error fetching ", src.source.Name(), err)
 			src.errCount++
 		} else {
 			src.errCount = 0
@@ -81,8 +78,8 @@ func Fetcher(label int, in chan newsSource, out chan *newsSource, content chan *
 			log.Printf("in fechtcher no %d, source %s, link count %d", label, src.source.Name(), len(*src.links))
 		}
 
-		content <- &src
-		out <- &src
+		content <- src
+		out <- src
 	}
 }
 
@@ -100,7 +97,7 @@ func main() {
 	defer profile.Start(profile.MemProfile).Stop()
 
 	// create our pending/done/new content channels
-	pending, done, updated := make(chan newsSource),
+	pending, done, updated := make(chan *newsSource),
 		make(chan *newsSource), make(chan *newsSource)
 
 	// launch fetchers
@@ -113,16 +110,16 @@ func main() {
 
 	go func() {
 		for s := range done {
-			log.Println("[INIT] sending source to sleep: ", s.source.Name())
-			go s.sleep(pending)
+			newSource := s
+			go newSource.sleep(pending)
 		}
 	}()
 
 	go func() {
 		for _, src := range sources {
+			copySrc := src
 			select {
-			case pending <- src:
-				log.Println("[INIT] adding source to pending queue: ", src.source.Name())
+			case pending <- &copySrc:
 				time.Sleep(10 * time.Second)
 			}
 		}

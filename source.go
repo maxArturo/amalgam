@@ -30,7 +30,7 @@ type newsSource struct {
 	lastUpdated time.Time
 }
 
-func (s *newsSource) sleep(done chan newsSource) {
+func (s *newsSource) sleep(done chan *newsSource) {
 	time.Sleep(fetchInterval*time.Second + time.Duration(s.errCount))
-	done <- *s
+	done <- s
 }
