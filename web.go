@@ -6,8 +6,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/profile"
@@ -37,16 +39,21 @@ func frontPageHandler(newContent chan string) func(w http.ResponseWriter, r *htt
 
 func formatLinks(sourceLinks *map[string]*[]NewsLink) string {
 	// TODO make this use templates instead
-	content := "<ul>"
+	content := fmt.Sprintf("<p>last updated at %s</p><ul>", time.Now().UTC())
+	var links []string
 
-	for source, links := range *sourceLinks {
-		for _, link := range *links {
-			content = content + fmt.Sprintf("<li>[%s] <a href=%s>%s</a>. <a href=%s>[%d]</a> </li>",
-				source, link.URL, link.Title, link.CommentsURL, link.CommentCount)
+	for source, refs := range *sourceLinks {
+		for _, link := range *refs {
+			links = append(links, fmt.Sprintf("<li>[%s] <a href=%s>%s</a>. <a href=%s>[%d]</a> </li>",
+				source, link.URL, link.Title, link.CommentsURL, link.CommentCount))
 		}
 	}
 
-	content = content + "</ul>"
+	rand.Shuffle(len(links), func(i, j int) {
+		links[i], links[j] = links[j], links[i]
+	})
+
+	content = content + strings.Join(links, "") + "</ul>"
 	return content
 }
 
