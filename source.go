@@ -16,6 +16,7 @@ type Sourcer interface {
 
 // NewsLink represents a link with a set of fields needed to be rendered by the news aggregator.
 type NewsLink struct {
+	Source       string
 	Title        string
 	URL          string
 	CommentsURL  string

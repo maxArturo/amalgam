@@ -64,6 +64,7 @@ func (s *reddit) parseResponse(body []byte) (*[]NewsLink, error) {
 
 		links = append(links,
 			NewsLink{
+				Source:       s.name,
 				Title:        string(listing.GetStringBytes("data", "title")),
 				URL:          string(listing.GetStringBytes("data", "url")),
 				CommentCount: listing.GetInt("data", "num_comments"),

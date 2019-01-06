@@ -66,6 +66,7 @@ func (s *hackerNews) parseResponse(body []byte) (*[]NewsLink, error) {
 		commentURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", link.ObjID)
 		links = append(links,
 			NewsLink{
+				Source:       s.name,
 				Title:        link.Title,
 				URL:          link.URL,
 				CommentCount: link.CommentCount,

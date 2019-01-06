@@ -1,11 +1,11 @@
 <h1>Latest Links</h1>
-<p>last updated at {{ .lastUpdated}}</p>
+<p>last updated at {{ .LastUpdated}}</p>
 <ul>
-  {{
-    range.refs
-  }}
-  <li></li>
-  {{
-    end
-  }}
+  {{ range.Links }}
+  <li>
+    [{{.Source}}] <a href="{{.URL}}">{{.Title}}</a>. <a href="{{.CommentsURL}}">{{.CommentCount}}</a>
+  </li>
+  {{ else }}
+  <p>Loading links...</p>
+  {{ end }}
 </ul>

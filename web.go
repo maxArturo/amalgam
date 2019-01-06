@@ -4,12 +4,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/pkg/profile"
@@ -17,54 +14,37 @@ import (
 
 const numFetchers = 3
 
-type renderLinks struct {
-	source string
-	link   NewsLink
-}
-
-func frontPageHandler(newContent chan string) func(w http.ResponseWriter, r *http.Request) {
-	latestContent := "<h1>Loading content...</h1>"
-	defaultHeader := "<h1>Latest Links</h1>"
+func frontPageHandler(newContent chan *[]NewsLink) func(w http.ResponseWriter, r *http.Request) {
+	var latestContent *linkLayout
 
 	go func() {
 		for content := range newContent {
-			latestContent = defaultHeader + content
+			latestContent = &linkLayout{
+				LastUpdated: time.Now().UTC(),
+				Links:       content,
+			}
 		}
 	}()
 
+	layout := mainLayout()
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, latestContent)
+		layout.Execute(w, latestContent)
 	}
 }
 
-func formatLinks(sourceLinks *map[string]*[]NewsLink) string {
-	// TODO make this use templates instead
-	content := fmt.Sprintf("<p>last updated at %s</p><ul>", time.Now().UTC())
-	var links []string
-
-	for source, refs := range *sourceLinks {
-		for _, link := range *refs {
-			links = append(links, fmt.Sprintf("<li>[%s] <a href=%s>%s</a>. <a href=%s>[%d]</a> </li>",
-				source, link.URL, link.Title, link.CommentsURL, link.CommentCount))
-		}
-	}
-
-	rand.Shuffle(len(links), func(i, j int) {
-		links[i], links[j] = links[j], links[i]
-	})
-
-	content = content + strings.Join(links, "") + "</ul>"
-	return content
-}
-
-func contentHandler(in chan *newsSource) chan string {
-	out := make(chan string)
+func contentHandler(in chan *newsSource) chan *[]NewsLink {
+	out := make(chan *[]NewsLink)
 	latestLinks := make(map[string]*[]NewsLink)
 
 	go func() {
 		for s := range in {
 			latestLinks[s.source.Name()] = s.links
-			out <- formatLinks(&latestLinks)
+			renderLinks := make([]NewsLink, 0)
+			for _, links := range latestLinks {
+				renderLinks = append(renderLinks, *links...)
+			}
+
+			out <- &renderLinks
 		}
 	}()
 	return out
