@@ -2,6 +2,8 @@ package main
 
 import (
 	"html/template"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -11,5 +13,6 @@ type linkLayout struct {
 }
 
 func mainLayout() *template.Template {
-	return template.Must(template.ParseFiles("main.html"))
+	cwd, _ := os.Executable()
+	return template.Must(template.ParseFiles(filepath.Join(filepath.Dir(cwd), "templates/main.html")))
 }
