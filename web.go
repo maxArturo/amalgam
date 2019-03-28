@@ -72,14 +72,16 @@ func Fetcher(label int, in chan *newsSource, out chan *newsSource, content chan 
 
 func main() {
 	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "8080"
+	}
+
 	sources := []newsSource{
 		newsSource{source: redditSource()},
 		newsSource{source: hackerNewsSource()},
 	}
 
-	if port == "" {
-		log.Fatal("$PORT must be set")
-	}
 	// memory profiling
 	defer profile.Start(profile.MemProfile).Stop()
 
