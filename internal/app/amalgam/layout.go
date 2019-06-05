@@ -14,5 +14,5 @@ type linkLayout struct {
 
 func mainLayout() *template.Template {
 	cwd, _ := os.Executable()
-	return template.Must(template.ParseFiles(filepath.Join(filepath.Dir(cwd), "templates/main.html")))
+	return template.Must(template.ParseFiles(filepath.Join(filepath.Dir(cwd), "config/templates/main.html")))
 }
