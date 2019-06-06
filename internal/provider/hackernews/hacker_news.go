@@ -1,4 +1,4 @@
-package provider
+package hackernews
 
 import (
 	"encoding/json"
@@ -8,8 +8,8 @@ import (
 	"net/http"
 )
 
-// HNLink a link to a HN post
-type HNLink struct {
+// Link represents a link to a HN post
+type Link struct {
 	source       string
 	title        string
 	url          string
@@ -17,32 +17,31 @@ type HNLink struct {
 	commentsURL  string
 }
 
-// Source the HN name
-func (l HNLink) Source() string {
+// Source is the HN name
+func (l Link) Source() string {
 	return l.source
 }
 
-// Title the article title
-func (l HNLink) Title() string {
+// Title is the article title
+func (l Link) Title() string {
 	return l.title
 }
 
-// URL the link URL
-func (l HNLink) URL() string {
+// URL is the link URL
+func (l Link) URL() string {
 	return l.url
 }
 
-// CommentsURL the link's Comments URL (if any)
-func (l HNLink) CommentsURL() string {
+// CommentsURL is the link's Comments URL (if any)
+func (l Link) CommentsURL() string {
 	return l.commentsURL
 }
 
-// CommentCount the link's Comments URL (if any)
-func (l HNLink) CommentCount() int {
+// CommentCount is the link's Comments URL (if any)
+func (l Link) CommentCount() int {
 	return l.commentCount
 }
 
-// HackerNewsResponse represents the Hacker News website source for news links.
 type hackerNewsResponse struct {
 	Hits []hnHit `json:"hits"`
 }
@@ -54,12 +53,14 @@ type hnHit struct {
 	ObjID        string `json:"objectID"`
 }
 
-type hackerNews struct {
+// HackerNews is the base struct for the provider
+type HackerNews struct {
 	name   string
 	APIURL string
 }
 
-func (s *hackerNews) Fetch() (*[]HNLink, error) {
+// Fetch collets new links for processing
+func (s *HackerNews) Fetch() (*[]Link, error) {
 	log.Println("[HN] querying HN api...")
 	resp, err := http.Get(s.APIURL)
 	if err != nil {
@@ -75,19 +76,20 @@ func (s *hackerNews) Fetch() (*[]HNLink, error) {
 	return s.parseResponse(body)
 }
 
-func (s *hackerNews) Name() string {
+// Name is the provider's official name
+func (s *HackerNews) Name() string {
 	return s.name
 }
 
-// HackerNews provides the HN source
-func HackerNews() *hackerNews {
-	return &hackerNews{
+// New provides a configured HN provider
+func New() *HackerNews {
+	return &HackerNews{
 		name:   "Hacker News",
 		APIURL: "https://hn.algolia.com/api/v1/search?tags=front_page",
 	}
 }
 
-func (s *hackerNews) parseResponse(body []byte) (*[]HNLink, error) {
+func (s *HackerNews) parseResponse(body []byte) (*[]Link, error) {
 	resp := &hackerNewsResponse{}
 	err := json.Unmarshal(body, resp)
 	if err != nil {
@@ -96,11 +98,11 @@ func (s *hackerNews) parseResponse(body []byte) (*[]HNLink, error) {
 		return nil, err
 	}
 
-	links := []HNLink{}
+	links := []Link{}
 	for _, link := range resp.Hits {
 		commentURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", link.ObjID)
 		links = append(links,
-			HNLink{
+			Link{
 				source:       s.name,
 				title:        link.Title,
 				url:          link.URL,

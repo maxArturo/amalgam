@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/maxArturo/amalgam/internal/provider/hackernews"
+	"github.com/maxArturo/amalgam/internal/provider/reddit"
 	"github.com/maxArturo/amalgam/pkg/util"
-	provider "github.com/maxArturo/amalgam/internal/provider"
 )
 
 // Engine is the main way to run an amalgam server.
@@ -25,11 +26,12 @@ func (e *Engine) Run(addr ...string) (err error) {
 // Default creates a normal engine with default settings:
 // * Hacker News and Reddit enabled
 func Default() *Engine {
+	providers := []Provider{
+		reddit.New(),
+		hackernews.New(),
+	}
 	return &Engine{
-		Providers {
-			provider.HackerNews(), 
-			provider.Reddit(), 
-		}
+		Providers: providers,
 	}
 }
 
@@ -42,12 +44,12 @@ func New() *Engine {
 // Provider defines the only requirement from a source: a Fetch() function that returns
 // a slice of NewsLink structs, and a Name().
 type Provider interface {
-	Fetch() (*[]WebPager, error)
+	Fetch() ([]Linker, error)
 	Name() string
 }
 
-// WebPager represents a link with a set of fields needed to be rendered by the news aggregator.
-type WebPager interface {
+// Linker represents a link with a set of fields needed to be rendered by the news aggregator.
+type Linker interface {
 	Source() string
 	Title() string
 	URL() string
@@ -58,7 +60,7 @@ type WebPager interface {
 // newsSource represents the higher-level source of links for rendering.
 type newsSource struct {
 	source      Provider
-	links       *[]WebPager
+	links       *[]Linker
 	errCount    int
 	lastUpdated time.Time
 }
