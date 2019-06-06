@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/maxArturo/amalgam"
 )
 
 // Link represents a link to a HN post
@@ -60,7 +62,7 @@ type HackerNews struct {
 }
 
 // Fetch collets new links for processing
-func (s *HackerNews) Fetch() (*[]Link, error) {
+func (s *HackerNews) Fetch() ([]amalgam.Linker, error) {
 	log.Println("[HN] querying HN api...")
 	resp, err := http.Get(s.APIURL)
 	if err != nil {
@@ -73,7 +75,18 @@ func (s *HackerNews) Fetch() (*[]Link, error) {
 		log.Println("Error reading HN response", s.APIURL, err)
 		return nil, err
 	}
-	return s.parseResponse(body)
+
+	response, err := s.parseResponse(body)
+	if err != nil {
+		log.Println("Error reading HN response", s.APIURL, err)
+		return nil, err
+	}
+
+	links := make([]amalgam.Linker, len(response))
+	for i, v := range links {
+		links[i] = v
+	}
+	return links, nil
 }
 
 // Name is the provider's official name
@@ -89,7 +102,7 @@ func New() *HackerNews {
 	}
 }
 
-func (s *HackerNews) parseResponse(body []byte) (*[]Link, error) {
+func (s *HackerNews) parseResponse(body []byte) ([]*Link, error) {
 	resp := &hackerNewsResponse{}
 	err := json.Unmarshal(body, resp)
 	if err != nil {
@@ -98,16 +111,16 @@ func (s *HackerNews) parseResponse(body []byte) (*[]Link, error) {
 		return nil, err
 	}
 
-	links := []Link{}
+	links := []*Link{}
 	for _, link := range resp.Hits {
 		commentURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", link.ObjID)
 		links = append(links,
-			Link{
+			&Link{
 				source:       s.name,
 				title:        link.Title,
 				url:          link.URL,
 				commentCount: link.CommentCount,
 				commentsURL:  commentURL})
 	}
-	return &links, nil
+	return links, nil
 }

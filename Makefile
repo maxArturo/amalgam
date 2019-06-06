@@ -1,12 +1,12 @@
 PORT=8000
 
-all: clean amalgam
+all: clean amalgam run
 
 amalgam:
-	go build ./internal/app/amalgam
+	go build -o amalgam ./cmd/amalgam/main.go
 
-run: 
+run:
 	PORT=$(PORT) ./amalgam
 
 clean:
-	rm amalgam
+	rm amalgam || :

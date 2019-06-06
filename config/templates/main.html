@@ -407,17 +407,20 @@
   <body>
     <div class="container">
       <h1>Latest Links</h1>
-      <p>last updated at {{ .LastUpdated}}</p>
-      <ul>
-        {{ range.Links }}
-        <li>
-          [{{.Source}}] <a href="{{.URL}}">{{.Title}}</a>. 
-          <code><a href="{{.CommentsURL}}"> [{{.CommentCount}}]</a></code>
-        </li>
-        {{ else }}
-        <p>Loading links...</p>
-        {{ end }}
-      </ul>
+      {{ range $_ , $source := . }}
+        <h2>{{ $source.SourceName }}</h2>
+        <p>last updated at {{ $source.LastUpdated}}</p>
+
+        <ul>
+            {{ range $source.Links }}
+            <li>
+                <a href="{{.URL}}">{{.Title}}</a>.
+                <code><a href="{{.CommentsURL}}"> [{{.CommentCount}}]</a></code>
+            </li>
+            {{ end }}
+        </ul>
+
+      {{ end }}
     </div>
   </body>
 </html>

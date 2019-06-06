@@ -1,11 +1,13 @@
 package reddit
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 
+	"github.com/maxArturo/amalgam"
 	"github.com/valyala/fastjson"
 )
 
@@ -50,7 +52,7 @@ type Reddit struct {
 }
 
 // Fetch queries Reddit for new links
-func (s *Reddit) Fetch() (*[]Link, error) {
+func (s *Reddit) Fetch() ([]amalgam.Linker, error) {
 	log.Println("[REDDIT] querying reddit api...")
 	req, err := http.NewRequest("GET", s.APIURL, nil)
 	if err != nil {
@@ -69,7 +71,22 @@ func (s *Reddit) Fetch() (*[]Link, error) {
 		log.Println("Error reading reddit response", s.APIURL, err)
 		return nil, err
 	}
-	return s.parseResponse(body)
+
+	response, err := s.parseResponse(body)
+
+	if err != nil {
+		log.Println("Error reading HN response", s.APIURL, err)
+		return nil, err
+	}
+
+	jsonLinks, _ := json.Marshal(response)
+	log.Println(string(jsonLinks))
+
+	links := make([]amalgam.Linker, len(response))
+	for i, _ := range links {
+		links[i] = response[i]
+	}
+	return links, nil
 }
 
 // Name is the name to display for the Reddit source
@@ -85,7 +102,7 @@ func New() *Reddit {
 	}
 }
 
-func (s *Reddit) parseResponse(body []byte) (*[]Link, error) {
+func (s *Reddit) parseResponse(body []byte) ([]*Link, error) {
 	var p fastjson.Parser
 	v, err := p.Parse(string(body))
 	if err != nil {
@@ -94,14 +111,14 @@ func (s *Reddit) parseResponse(body []byte) (*[]Link, error) {
 	}
 
 	listingArr := v.GetArray("data", "children")
-	links := []Link{}
+	links := []*Link{}
 
 	for _, listing := range listingArr {
 		commentURL := fmt.Sprintf("https://www.reddit.com%s",
 			string(listing.GetStringBytes("data", "permalink")))
 
 		links = append(links,
-			Link{
+			&Link{
 				source:       s.name,
 				title:        string(listing.GetStringBytes("data", "title")),
 				url:          string(listing.GetStringBytes("data", "url")),
@@ -109,5 +126,5 @@ func (s *Reddit) parseResponse(body []byte) (*[]Link, error) {
 				commentsURL:  commentURL})
 	}
 
-	return &links, nil
+	return links, nil
 }
