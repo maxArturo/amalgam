@@ -1,7 +1,6 @@
 package reddit
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -79,12 +78,9 @@ func (s *Reddit) Fetch() ([]amalgam.Linker, error) {
 		return nil, err
 	}
 
-	jsonLinks, _ := json.Marshal(response)
-	log.Println(string(jsonLinks))
-
-	links := make([]amalgam.Linker, len(response))
+	links := make([]amalgam.Linker, len(*response))
 	for i, _ := range links {
-		links[i] = response[i]
+		links[i] = (*response)[i]
 	}
 	return links, nil
 }
@@ -102,7 +98,7 @@ func New() *Reddit {
 	}
 }
 
-func (s *Reddit) parseResponse(body []byte) ([]*Link, error) {
+func (s *Reddit) parseResponse(body []byte) (*[]Link, error) {
 	var p fastjson.Parser
 	v, err := p.Parse(string(body))
 	if err != nil {
@@ -111,20 +107,19 @@ func (s *Reddit) parseResponse(body []byte) ([]*Link, error) {
 	}
 
 	listingArr := v.GetArray("data", "children")
-	links := []*Link{}
+	links := []Link{}
 
 	for _, listing := range listingArr {
 		commentURL := fmt.Sprintf("https://www.reddit.com%s",
 			string(listing.GetStringBytes("data", "permalink")))
 
-		links = append(links,
-			&Link{
-				source:       s.name,
-				title:        string(listing.GetStringBytes("data", "title")),
-				url:          string(listing.GetStringBytes("data", "url")),
-				commentCount: listing.GetInt("data", "num_comments"),
-				commentsURL:  commentURL})
+		links = append(links, Link{
+			source:       s.name,
+			title:        string(listing.GetStringBytes("data", "title")),
+			url:          string(listing.GetStringBytes("data", "url")),
+			commentCount: listing.GetInt("data", "num_comments"),
+			commentsURL:  commentURL})
 	}
 
-	return links, nil
+	return &links, nil
 }

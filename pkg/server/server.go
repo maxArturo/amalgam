@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -17,7 +16,7 @@ import (
 func Run(port string, sources ...amalgam.Provider) {
 
 	if len(sources) == 0 {
-		fmt.Println("we are using our own sources btw")
+		log.Println("Using default news sources...")
 		sources = []amalgam.Provider{
 			reddit.New(),
 			hackernews.New(),

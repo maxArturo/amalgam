@@ -82,9 +82,9 @@ func (s *HackerNews) Fetch() ([]amalgam.Linker, error) {
 		return nil, err
 	}
 
-	links := make([]amalgam.Linker, len(response))
-	for i, v := range links {
-		links[i] = v
+	links := make([]amalgam.Linker, len(*response))
+	for i, _ := range links {
+		links[i] = (*response)[i]
 	}
 	return links, nil
 }
@@ -102,7 +102,7 @@ func New() *HackerNews {
 	}
 }
 
-func (s *HackerNews) parseResponse(body []byte) ([]*Link, error) {
+func (s *HackerNews) parseResponse(body []byte) (*[]Link, error) {
 	resp := &hackerNewsResponse{}
 	err := json.Unmarshal(body, resp)
 	if err != nil {
@@ -111,16 +111,16 @@ func (s *HackerNews) parseResponse(body []byte) ([]*Link, error) {
 		return nil, err
 	}
 
-	links := []*Link{}
+	links := []Link{}
 	for _, link := range resp.Hits {
 		commentURL := fmt.Sprintf("https://news.ycombinator.com/item?id=%s", link.ObjID)
 		links = append(links,
-			&Link{
+			Link{
 				source:       s.name,
 				title:        link.Title,
 				url:          link.URL,
 				commentCount: link.CommentCount,
 				commentsURL:  commentURL})
 	}
-	return links, nil
+	return &links, nil
 }

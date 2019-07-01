@@ -50,7 +50,8 @@ func contentHandler(in chan []amalgam.Linker) func(w http.ResponseWriter, r *htt
 
 	go func() {
 		for s := range in {
-			if linkLen := len(in); linkLen != 0 {
+			if linkLen := len(s); linkLen != 0 {
+
 				name := s[0].Source()
 				latestLinks[name] = s
 

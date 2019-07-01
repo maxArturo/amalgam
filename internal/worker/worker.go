@@ -1,8 +1,6 @@
 package worker
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -71,8 +69,6 @@ func Fetch(label int, in chan *source, out chan *source, content chan []amalgam.
 		} else {
 			src.errCount = 0
 			log.Printf("in fechtcher no %d, source %s, link count %d", label, src.provider.Name(), len(newLinks))
-			jsonLinks, _ := json.Marshal(newLinks)
-			fmt.Println(string(jsonLinks))
 		}
 
 		content <- newLinks
