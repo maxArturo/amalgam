@@ -12,9 +12,28 @@ import (
 	"github.com/maxArturo/amalgam"
 )
 
+type fetcher interface {
+	Start(providers []amalgam.Provider) chan []amalgam.Linker
+}
+
+type layoutHandler interface {
+	newHandler(in chan []amalgam.Linker) func(w http.ResponseWriter, r *http.Request)
+}
+
+type server struct {
+	queue        fetcher
+	layoutRender layoutHandler
+}
+
+func new() *server {
+	return &server{
+		queue:        &worker.SourceJob{},
+		layoutRender: &linkView{},
+	}
+}
+
 // Run starts the amalgam server.
 func Run(port string, sources ...amalgam.Provider) {
-
 	if len(sources) == 0 {
 		log.Println("Using default news sources...")
 		sources = []amalgam.Provider{
@@ -23,11 +42,12 @@ func Run(port string, sources ...amalgam.Provider) {
 		}
 	}
 
-	updated := worker.Start(sources)
+	server := new()
+	updated := server.queue.Start(sources)
 
 	// handle new content coming in
-	layoutHandler := contentHandler(updated)
+	handler := server.layoutRender.newHandler(updated)
 
-	http.HandleFunc("/", layoutHandler)
+	http.HandleFunc("/", handler)
 	log.Fatal(http.ListenAndServe(util.ResolveAddress(port), nil))
 }

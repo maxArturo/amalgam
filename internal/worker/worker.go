@@ -18,13 +18,15 @@ type source struct {
 	lastUpdated time.Time
 }
 
+type SourceJob struct{}
+
 func sleep(s *source, done chan *source) {
 	time.Sleep(defaultFetchInterval*time.Second + time.Duration(s.errCount))
 	done <- s
 }
 
 // Start kicks off workers to fetch new content.
-func Start(providers []amalgam.Provider) chan []amalgam.Linker {
+func (s *SourceJob) Start(providers []amalgam.Provider) chan []amalgam.Linker {
 	// create our pending/done/new content channels
 	pending, done, updated := make(chan *source),
 		make(chan *source), make(chan []amalgam.Linker)
