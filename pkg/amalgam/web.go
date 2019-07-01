@@ -1,15 +1,13 @@
 // Package amalgam provides a brutally simple webserver for no-nonsense news aggregation.
 // It aims for lightweight hardware requirements, extensibility, and simplicity.
 
-package main
+package amalgam
 
 import (
 	"log"
 	"net/http"
 	"os"
 	"time"
-
-	"github.com/pkg/profile"
 )
 
 const numFetchers = 3
@@ -81,9 +79,6 @@ func main() {
 		newsSource{source: redditSource()},
 		newsSource{source: hackerNewsSource()},
 	}
-
-	// memory profiling
-	defer profile.Start(profile.MemProfile).Stop()
 
 	// create our pending/done/new content channels
 	pending, done, updated := make(chan *newsSource),

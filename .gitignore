@@ -16,4 +16,5 @@
 
 # project binary
 amalgam
+!amalgam/
 
