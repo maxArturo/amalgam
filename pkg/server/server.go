@@ -20,20 +20,25 @@ type layoutHandler interface {
 	newHandler(in chan []amalgam.Linker) func(w http.ResponseWriter, r *http.Request)
 }
 
-type server struct {
+type portResolver interface {
+	ResolveAddress(addr string) string
+}
+
+type Server struct {
 	queue        fetcher
 	layoutRender layoutHandler
 }
 
-func new() *server {
-	return &server{
+func New() *Server {
+	return &Server{
 		queue:        &worker.SourceJob{},
 		layoutRender: &linkView{},
+		portResolver: &util.Util{},
 	}
 }
 
 // Run starts the amalgam server.
-func Run(port string, sources ...amalgam.Provider) {
+func (s *Server) Run(port string, sources ...amalgam.Provider) {
 	if len(sources) == 0 {
 		log.Println("Using default news sources...")
 		sources = []amalgam.Provider{
@@ -42,12 +47,11 @@ func Run(port string, sources ...amalgam.Provider) {
 		}
 	}
 
-	server := new()
-	updated := server.queue.Start(sources)
+	updated := s.queue.Start(sources)
 
 	// handle new content coming in
-	handler := server.layoutRender.newHandler(updated)
+	handler := s.layoutRender.newHandler(updated)
 
 	http.HandleFunc("/", handler)
-	log.Fatal(http.ListenAndServe(util.ResolveAddress(port), nil))
+	log.Fatal(http.ListenAndServe(s.util.ResolveAddress(port), nil))
 }
