@@ -1,9 +1,9 @@
-package util_test
+package worker_test
 
 import (
 	"testing"
 
-	"github.com/maxArturo/amalgam/internal/util"
+	"github.com/maxArturo/amalgam/internal/worker"
 	"github.com/stretchr/testify/assert"
 )
 
