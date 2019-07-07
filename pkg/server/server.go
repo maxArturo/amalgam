@@ -33,7 +33,7 @@ func New() *Server {
 	return &Server{
 		queue:        &worker.SourceJob{},
 		layoutRender: &linkView{},
-		portResolver: &util.Util{},
+		portResolver: util.New(),
 	}
 }
 
