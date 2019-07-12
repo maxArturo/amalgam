@@ -31,7 +31,7 @@ type Server struct {
 
 func New() *Server {
 	return &Server{
-		queue:        &worker.SourceJob{},
+		queue:        worker.New(),
 		layoutRender: &linkView{},
 		portResolver: util.New(),
 	}

@@ -7,11 +7,11 @@ import (
 )
 
 type mockOSEnvFetcher struct {
-	mockPort string
+	mockVal string
 }
 
-func (f *mockOSEnvFetcher) GetEnvPort() string {
-	return f.mockPort
+func (f *mockOSEnvFetcher) getEnv(_ string) string {
+	return f.mockVal
 }
 
 func TestUtilAddressResolution(t *testing.T) {
@@ -35,11 +35,61 @@ func TestUtilAddressResolution(t *testing.T) {
 func TestUtilResolvesPortWithOSEnv(t *testing.T) {
 	u := &Util{
 		envFetcher: &mockOSEnvFetcher{
-			mockPort: "1984",
+			mockVal: "1984",
 		},
 	}
 
 	res := u.ResolveAddress("")
 
 	assert.Equal(t, ":1984", res, "should be equal")
+}
+
+func TestGetEmptyInt(t *testing.T) {
+	u := &Util{
+		envFetcher: &mockOSEnvFetcher{
+			mockVal: "",
+		},
+	}
+
+	val, err := u.GetEnvVarInt("bonanza")
+	assert.Equal(t, -1, val, "should be -1 to signify err")
+	assert.NotNil(t, err)
+
+}
+
+func TestGetBadInt(t *testing.T) {
+	u := &Util{
+		envFetcher: &mockOSEnvFetcher{
+			mockVal: "bonanza",
+		},
+	}
+
+	val, err := u.GetEnvVarInt("bonanza")
+	assert.Equal(t, -1, val, "should be -1 to signify err")
+	assert.NotNil(t, err)
+
+}
+
+func TestGetGoodInt(t *testing.T) {
+	u := &Util{
+		envFetcher: &mockOSEnvFetcher{
+			mockVal: "328",
+		},
+	}
+
+	val, err := u.GetEnvVarInt("bonanza")
+	assert.Equal(t, 328, val, "should be an int")
+	assert.Nil(t, err)
+}
+
+func TestGetPosInt(t *testing.T) {
+	u := &Util{
+		envFetcher: &mockOSEnvFetcher{
+			mockVal: "-328",
+		},
+	}
+
+	val, err := u.GetEnvVarInt("bonanza")
+	assert.Equal(t, -1, val, "should be -1 to signify not a posint")
+	assert.NotNil(t, err)
 }

@@ -1,19 +1,36 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 )
 
 type envFetcher interface {
-	GetEnvPort() string
+	getEnv(key string) string
 }
 
 type osEnvFetcher struct{}
 
-func (f *osEnvFetcher) GetEnvPort() string {
-	return os.Getenv("PORT")
+func (f *osEnvFetcher) getEnv(key string) string {
+	return os.Getenv(key)
+}
+
+func (u *Util) GetEnvVarInt(envVar string) (int, error) {
+	val := u.envFetcher.getEnv(envVar)
+
+	if val == "" {
+		return -1, errors.New("no value found")
+	}
+	numVal, err := strconv.Atoi(val)
+	if err != nil {
+		return -1, err
+	} else if numVal < 0 {
+		return -1, errors.New("Expected a positive int")
+	}
+	return numVal, nil
 }
 
 type Util struct {
@@ -29,7 +46,7 @@ func New() *Util {
 // ResolveAddress matches an input address and provides sane defaults
 func (u *Util) ResolveAddress(addr string) string {
 	if addr == "" {
-		if port := u.GetEnvPort(); port != "" {
+		if port := u.envFetcher.getEnv("PORT"); port != "" {
 			log.Printf("Environment variable PORT=\"%s\"", port)
 			return ":" + port
 		}

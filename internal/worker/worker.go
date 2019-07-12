@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/maxArturo/amalgam"
+	"github.com/maxArturo/amalgam/internal/util"
 )
 
-const defaultErrTimeoutDelay = 5
 const defaultFetchInterval = 30
 const defaultNumFetchers = 3
 
@@ -18,10 +18,30 @@ type source struct {
 	lastUpdated time.Time
 }
 
-type SourceJob struct{}
+type SourceJob struct {
+	fetchInterval int
+	numFetchers   int
+}
+
+func New() *SourceJob {
+	fetchInterval, err := util.GetEnvVarInt("FETCH_INTERVAL")
+	if err != nil {
+		fetchInterval = defaultFetchInterval
+	}
+
+	numFetchers, err := util.GetEnvVarInt("FETCH_INTERVAL")
+	if err != nil {
+		numFetchers = defaultNumFetchers
+	}
+
+	return &SourceJob{
+		fetchInterval: fetchInterval,
+		numFetchers:   numFetchers,
+	}
+}
 
 func sleep(s *source, done chan *source) {
-	time.Sleep(defaultFetchInterval*time.Second + time.Duration(s.errCount))
+	time.Sleep(s.fetchInterval*time.Second + time.Duration(s.errCount))
 	done <- s
 }
 
@@ -32,7 +52,7 @@ func (s *SourceJob) Start(providers []amalgam.Provider) chan []amalgam.Linker {
 		make(chan *source), make(chan []amalgam.Linker)
 
 	// launch fetchers
-	for i := 0; i < defaultNumFetchers; i++ {
+	for i := 0; i < s.numFetchers; i++ {
 		go Fetch(i, pending, done, updated)
 	}
 
