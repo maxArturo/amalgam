@@ -75,6 +75,8 @@ func TestFetchJob_Start(t *testing.T) {
 			},
 			args: args{providers: []amalgam.Provider{
 				mockProvider{},
+				mockProvider{},
+				mockProvider{},
 			}},
 			flexChannels: true,
 		},
@@ -97,8 +99,11 @@ func TestFetchJob_Start(t *testing.T) {
 			assert.True(t, reflect.DeepEqual(tt.fields.fetcher.(*mockFetcher).done, tt.fields.sleeper.(*mockSleeper).done))
 
 			if tt.flexChannels {
-				nextSource := <-pendingChan
-				assert.Equal(t, nextSource.provider, tt.args.providers[0])
+				for _, p := range tt.args.providers {
+					nextSource := <-pendingChan
+					assert.Equal(t, nextSource.provider, p)
+				}
+
 			}
 		})
 	}

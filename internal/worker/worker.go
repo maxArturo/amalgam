@@ -71,9 +71,7 @@ func (f *FetchJob) Start(providers []amalgam.Provider) chan []amalgam.Linker {
 			source := &source{
 				provider: provider,
 			}
-			select {
-			case pending <- source:
-			}
+			pending <- source
 		}
 	}()
 

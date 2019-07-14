@@ -12,4 +12,4 @@ clean:
 	rm amalgam || :
 
 test: 
-	go test ./...
+	go test ./... --timeout 1s
