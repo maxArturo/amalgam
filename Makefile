@@ -1,6 +1,6 @@
 PORT=8000
 
-all: clean amalgam run
+all: clean test amalgam run
 
 amalgam:
 	go build -o amalgam ./cmd/amalgam/main.go
@@ -10,3 +10,6 @@ run:
 
 clean:
 	rm amalgam || :
+
+test: 
+	go test ./...
