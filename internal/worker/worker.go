@@ -18,50 +18,53 @@ type source struct {
 	lastUpdated time.Time
 }
 
-type SourceJob struct {
-	fetchInterval int
-	numFetchers   int
+type fetcher interface {
+	spawnFetchers(count int, pending chan *source, done chan *source, updated chan []amalgam.Linker)
 }
 
-func New() *SourceJob {
-	fetchInterval, err := util.GetEnvVarInt("FETCH_INTERVAL")
+type sleeper interface {
+	sleepSources(done chan *source, pending chan *source, duration time.Duration)
+}
+
+// FetchJob contains the config needed for fetching provider links.
+type FetchJob struct {
+	fetchInterval int
+	numFetchers   int
+	fetcher
+	sleeper
+}
+
+// New creates a configured FetchJob ready to use.
+func New() *FetchJob {
+	utilService := util.New()
+	fetchInterval, err := utilService.GetEnvVarInt("FETCH_INTERVAL")
 	if err != nil {
 		fetchInterval = defaultFetchInterval
 	}
 
-	numFetchers, err := util.GetEnvVarInt("FETCH_INTERVAL")
+	numFetchers, err := utilService.GetEnvVarInt("FETCH_INTERVAL")
 	if err != nil {
 		numFetchers = defaultNumFetchers
+		log.Println(err)
 	}
 
-	return &SourceJob{
+	return &FetchJob{
 		fetchInterval: fetchInterval,
 		numFetchers:   numFetchers,
+		fetcher:       &fetchProvider{},
+		sleeper:       &sleepProvider{},
 	}
-}
-
-func sleep(s *source, done chan *source) {
-	time.Sleep(s.fetchInterval*time.Second + time.Duration(s.errCount))
-	done <- s
 }
 
 // Start kicks off workers to fetch new content.
-func (s *SourceJob) Start(providers []amalgam.Provider) chan []amalgam.Linker {
+func (f *FetchJob) Start(providers []amalgam.Provider) chan []amalgam.Linker {
 	// create our pending/done/new content channels
 	pending, done, updated := make(chan *source),
 		make(chan *source), make(chan []amalgam.Linker)
 
-	// launch fetchers
-	for i := 0; i < s.numFetchers; i++ {
-		go Fetch(i, pending, done, updated)
-	}
+	f.fetcher.spawnFetchers(f.numFetchers, pending, done, updated)
 
-	go func() {
-		for s := range done {
-			newSource := s
-			go sleep(newSource, pending)
-		}
-	}()
+	f.sleeper.sleepSources(done, pending, time.Duration(f.fetchInterval)*time.Second)
 
 	go func() {
 		for _, provider := range providers {
@@ -70,8 +73,6 @@ func (s *SourceJob) Start(providers []amalgam.Provider) chan []amalgam.Linker {
 			}
 			select {
 			case pending <- source:
-				// TODO review, remove
-				time.Sleep(5 * time.Second)
 			}
 		}
 	}()
@@ -79,9 +80,33 @@ func (s *SourceJob) Start(providers []amalgam.Provider) chan []amalgam.Linker {
 	return updated
 }
 
+type sleepProvider struct{}
+
+func (provider *sleepProvider) sleepSources(done chan *source, pending chan *source, duration time.Duration) {
+	go func() {
+		for s := range done {
+			newSource := s
+			go provider.sleep(newSource, pending, duration+time.Duration(newSource.errCount))
+		}
+	}()
+}
+
+func (provider *sleepProvider) sleep(s *source, done chan *source, sleepDuration time.Duration) {
+	time.Sleep(sleepDuration)
+	done <- s
+}
+
+type fetchProvider struct{}
+
+func (f *fetchProvider) spawnFetchers(count int, pending chan *source, done chan *source, updated chan []amalgam.Linker) {
+	for i := 0; i < count; i++ {
+		go f.fetch(i, pending, done, updated)
+	}
+}
+
 // Fetch waits on an incoming channel for Sources and fetches them, to update with new links.
 // It reports out on the outgoing and content channels for completed Sources.
-func Fetch(label int, in chan *source, out chan *source, content chan []amalgam.Linker) {
+func (f *fetchProvider) fetch(label int, in chan *source, out chan *source, content chan []amalgam.Linker) {
 	for src := range in {
 		log.Printf("[FETCH] fetcher no %d, fetching for %s", label, src.provider.Name())
 		newLinks, err := src.provider.Fetch()
@@ -90,7 +115,6 @@ func Fetch(label int, in chan *source, out chan *source, content chan []amalgam.
 			src.errCount++
 		} else {
 			src.errCount = 0
-			log.Printf("in fechtcher no %d, source %s, link count %d", label, src.provider.Name(), len(newLinks))
 		}
 
 		content <- newLinks

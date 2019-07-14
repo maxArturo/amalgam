@@ -1,26 +1,80 @@
-package worker_test
+package worker
 
 import (
+	"reflect"
 	"testing"
+	"time"
 
-	"github.com/maxArturo/amalgam/internal/worker"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/maxArturo/amalgam"
 )
 
-func TestUtilAddressResolution(t *testing.T) {
-	tests := []struct {
-		port     string
-		expected string
-	}{
-		{port: "", expected: ":8080"},
-		{port: ":9999", expected: ":9999"},
-		{port: "9876", expected: ":9876"},
+type mockFetcher struct {
+	fetcherCount int
+	pending      chan *source
+	done         chan *source
+	updated      chan []amalgam.Linker
+}
+
+func (f *mockFetcher) spawnFetchers(count int, pending chan *source, done chan *source, updated chan []amalgam.Linker) {
+	f.fetcherCount = count
+	f.pending = pending
+	f.done = done
+	f.updated = updated
+}
+
+type mockSleeper struct {
+	pending chan *source
+	done    chan *source
+}
+
+func (f *mockSleeper) sleepSources(done chan *source, pending chan *source, duration time.Duration) {
+	f.done = done
+	f.pending = pending
+}
+
+func TestFetchJob_Start(t *testing.T) {
+
+	type fields struct {
+		fetchInterval int
+		numFetchers   int
+		fetcher       fetcher
+		sleeper       sleeper
 	}
+	type args struct {
+		providers []amalgam.Provider
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   chan []amalgam.Linker
+	}{
+		{name: "passes correct number of fetchers",
+			fields: fields{
+				numFetchers: 18,
+				fetcher:     &mockFetcher{},
+				sleeper:     &mockSleeper{},
+			}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := &FetchJob{
+				fetchInterval: tt.fields.fetchInterval,
+				numFetchers:   tt.fields.numFetchers,
+				fetcher:       tt.fields.fetcher,
+				sleeper:       tt.fields.sleeper,
+			}
+			// f.Start(tt.args.providers); !reflect.DeepEqual(got, tt.want) {
+			// 	t.Errorf("FetchJob.Start() = %v, want %v", got, tt.want)
+			// }
 
-	u := &util.Util{}
+			f.Start(tt.args.providers)
 
-	for _, test := range tests {
-		res := u.ResolveAddress(test.port)
-		assert.Equal(t, test.expected, res, "should be equal")
+			assert.Equal(t, tt.fields.numFetchers, tt.fields.fetcher.(*mockFetcher).fetcherCount)
+			assert.True(t, reflect.DeepEqual(tt.fields.fetcher.(*mockFetcher).pending, tt.fields.sleeper.(*mockSleeper).pending))
+
+		})
 	}
 }

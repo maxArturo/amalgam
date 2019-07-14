@@ -24,11 +24,14 @@ type portResolver interface {
 	ResolveAddress(addr string) string
 }
 
+// Server is the main Amalgam news aggregator.
 type Server struct {
 	queue        fetcher
 	layoutRender layoutHandler
+	portResolver
 }
 
+// New creates a configured server.
 func New() *Server {
 	return &Server{
 		queue:        worker.New(),
@@ -53,5 +56,5 @@ func (s *Server) Run(port string, sources ...amalgam.Provider) {
 	handler := s.layoutRender.newHandler(updated)
 
 	http.HandleFunc("/", handler)
-	log.Fatal(http.ListenAndServe(s.util.ResolveAddress(port), nil))
+	log.Fatal(http.ListenAndServe(s.portResolver.ResolveAddress(port), nil))
 }
