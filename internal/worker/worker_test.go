@@ -34,8 +34,16 @@ func (f *mockSleeper) sleepSources(done chan *source, pending chan *source, dura
 	f.pending = pending
 }
 
-func TestFetchJob_Start(t *testing.T) {
+type mockProvider struct{}
 
+func (f mockProvider) Fetch() ([]amalgam.Linker, error) {
+	return []amalgam.Linker{}, nil
+}
+func (f mockProvider) Name() string {
+	return ""
+}
+
+func TestFetchJob_Start(t *testing.T) {
 	type fields struct {
 		fetchInterval int
 		numFetchers   int
@@ -45,18 +53,31 @@ func TestFetchJob_Start(t *testing.T) {
 	type args struct {
 		providers []amalgam.Provider
 	}
+
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   chan []amalgam.Linker
+		name         string
+		fields       fields
+		args         args
+		want         chan []amalgam.Linker
+		flexChannels bool
 	}{
-		{name: "passes correct number of fetchers",
+		{
+			name: "passes correct number of fetchers",
 			fields: fields{
 				numFetchers: 18,
 				fetcher:     &mockFetcher{},
 				sleeper:     &mockSleeper{},
+			}}, {
+			name: "passes sources to pending channel",
+			fields: fields{
+				fetcher: &mockFetcher{},
+				sleeper: &mockSleeper{},
+			},
+			args: args{providers: []amalgam.Provider{
+				mockProvider{},
 			}},
+			flexChannels: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -66,15 +87,19 @@ func TestFetchJob_Start(t *testing.T) {
 				fetcher:       tt.fields.fetcher,
 				sleeper:       tt.fields.sleeper,
 			}
-			// f.Start(tt.args.providers); !reflect.DeepEqual(got, tt.want) {
-			// 	t.Errorf("FetchJob.Start() = %v, want %v", got, tt.want)
-			// }
 
 			f.Start(tt.args.providers)
 
+			pendingChan := tt.fields.fetcher.(*mockFetcher).pending
+
 			assert.Equal(t, tt.fields.numFetchers, tt.fields.fetcher.(*mockFetcher).fetcherCount)
 			assert.True(t, reflect.DeepEqual(tt.fields.fetcher.(*mockFetcher).pending, tt.fields.sleeper.(*mockSleeper).pending))
+			assert.True(t, reflect.DeepEqual(tt.fields.fetcher.(*mockFetcher).done, tt.fields.sleeper.(*mockSleeper).done))
 
+			if tt.flexChannels {
+				nextSource := <-pendingChan
+				assert.Equal(t, nextSource.provider, tt.args.providers[0])
+			}
 		})
 	}
 }
