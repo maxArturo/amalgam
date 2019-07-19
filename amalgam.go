@@ -5,7 +5,7 @@ package amalgam
 // Provider defines the only requirement from a source: a Fetch() function that returns
 // a slice of NewsLink structs, and a Name().
 type Provider interface {
-	Fetch() ([]Linker, error)
+	Fetch() (*[]Linker, error)
 	Name() string
 }
 

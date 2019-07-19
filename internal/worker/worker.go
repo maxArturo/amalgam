@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/maxArturo/amalgam"
+	"github.com/maxArturo/amalgam/internal/util"
 )
 
-const defaultErrTimeoutDelay = 5
 const defaultFetchInterval = 30
 const defaultNumFetchers = 3
 
@@ -18,60 +18,62 @@ type source struct {
 	lastUpdated time.Time
 }
 
-func sleep(s *source, done chan *source) {
-	time.Sleep(defaultFetchInterval*time.Second + time.Duration(s.errCount))
-	done <- s
+type fetcher interface {
+	spawnFetchers(count int, pending chan *source, done chan *source, updated chan *[]amalgam.Linker)
+}
+
+type sleeper interface {
+	sleepSources(done chan *source, pending chan *source, duration time.Duration)
+}
+
+// FetchJob contains the config needed for fetching provider links.
+type FetchJob struct {
+	fetchInterval int
+	numFetchers   int
+	fetcher
+	sleeper
+}
+
+// New creates a configured FetchJob ready to use.
+func New() *FetchJob {
+	utilService := util.New()
+	fetchInterval, err := utilService.GetEnvVarInt("FETCH_INTERVAL")
+	if err != nil {
+		fetchInterval = defaultFetchInterval
+	}
+
+	numFetchers, err := utilService.GetEnvVarInt("FETCH_INTERVAL")
+	if err != nil {
+		numFetchers = defaultNumFetchers
+		log.Println(err)
+	}
+
+	return &FetchJob{
+		fetchInterval: fetchInterval,
+		numFetchers:   numFetchers,
+		fetcher:       &fetchProvider{},
+		sleeper:       newSleepProvider(),
+	}
 }
 
 // Start kicks off workers to fetch new content.
-func Start(providers []amalgam.Provider) chan []amalgam.Linker {
+func (f *FetchJob) Start(providers *[]amalgam.Provider) chan *[]amalgam.Linker {
 	// create our pending/done/new content channels
 	pending, done, updated := make(chan *source),
-		make(chan *source), make(chan []amalgam.Linker)
+		make(chan *source), make(chan *[]amalgam.Linker)
 
-	// launch fetchers
-	for i := 0; i < defaultNumFetchers; i++ {
-		go Fetch(i, pending, done, updated)
-	}
+	f.fetcher.spawnFetchers(f.numFetchers, pending, done, updated)
 
-	go func() {
-		for s := range done {
-			newSource := s
-			go sleep(newSource, pending)
-		}
-	}()
+	f.sleeper.sleepSources(done, pending, time.Duration(f.fetchInterval)*time.Second)
 
 	go func() {
-		for _, provider := range providers {
+		for _, provider := range *providers {
 			source := &source{
 				provider: provider,
 			}
-			select {
-			case pending <- source:
-				// TODO review, remove
-				time.Sleep(5 * time.Second)
-			}
+			pending <- source
 		}
 	}()
 
 	return updated
-}
-
-// Fetch waits on an incoming channel for Sources and fetches them, to update with new links.
-// It reports out on the outgoing and content channels for completed Sources.
-func Fetch(label int, in chan *source, out chan *source, content chan []amalgam.Linker) {
-	for src := range in {
-		log.Printf("[FETCH] fetcher no %d, fetching for %s", label, src.provider.Name())
-		newLinks, err := src.provider.Fetch()
-		if err != nil {
-			log.Println("[FETCH] Error fetching ", src.provider.Name(), err)
-			src.errCount++
-		} else {
-			src.errCount = 0
-			log.Printf("in fechtcher no %d, source %s, link count %d", label, src.provider.Name(), len(newLinks))
-		}
-
-		content <- newLinks
-		out <- src
-	}
 }
