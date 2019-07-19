@@ -22,7 +22,7 @@ func (u *Util) GetEnvVarInt(envVar string) (int, error) {
 	val := u.envFetcher.getEnv(envVar)
 
 	if val == "" {
-		return -1, errors.New("no value found")
+		return -1, errors.New(fmt.Sprintf("no value found for %s", envVar))
 	}
 	numVal, err := strconv.Atoi(val)
 	if err != nil {

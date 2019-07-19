@@ -62,7 +62,7 @@ type HackerNews struct {
 }
 
 // Fetch collets new links for processing
-func (s *HackerNews) Fetch() ([]amalgam.Linker, error) {
+func (s *HackerNews) Fetch() (*[]amalgam.Linker, error) {
 	log.Println("[HN] querying HN api...")
 	resp, err := http.Get(s.APIURL)
 	if err != nil {
@@ -83,10 +83,10 @@ func (s *HackerNews) Fetch() ([]amalgam.Linker, error) {
 	}
 
 	links := make([]amalgam.Linker, len(*response))
-	for i, _ := range links {
+	for i := range links {
 		links[i] = (*response)[i]
 	}
-	return links, nil
+	return &links, nil
 }
 
 // Name is the provider's official name

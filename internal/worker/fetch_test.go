@@ -36,7 +36,7 @@ func Test_fetchProvider_fetch(t *testing.T) {
 	for i, tt := range tests {
 		in := make(chan *source)
 		out := make(chan *source)
-		content := make(chan []amalgam.Linker)
+		content := make(chan *[]amalgam.Linker)
 
 		t.Run(tt.name, func(t *testing.T) {
 			go tt.f.fetch(i, in, out, content)

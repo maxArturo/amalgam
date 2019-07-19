@@ -19,7 +19,7 @@ type source struct {
 }
 
 type fetcher interface {
-	spawnFetchers(count int, pending chan *source, done chan *source, updated chan []amalgam.Linker)
+	spawnFetchers(count int, pending chan *source, done chan *source, updated chan *[]amalgam.Linker)
 }
 
 type sleeper interface {
@@ -57,17 +57,17 @@ func New() *FetchJob {
 }
 
 // Start kicks off workers to fetch new content.
-func (f *FetchJob) Start(providers []amalgam.Provider) chan []amalgam.Linker {
+func (f *FetchJob) Start(providers *[]amalgam.Provider) chan *[]amalgam.Linker {
 	// create our pending/done/new content channels
 	pending, done, updated := make(chan *source),
-		make(chan *source), make(chan []amalgam.Linker)
+		make(chan *source), make(chan *[]amalgam.Linker)
 
 	f.fetcher.spawnFetchers(f.numFetchers, pending, done, updated)
 
 	f.sleeper.sleepSources(done, pending, time.Duration(f.fetchInterval)*time.Second)
 
 	go func() {
-		for _, provider := range providers {
+		for _, provider := range *providers {
 			source := &source{
 				provider: provider,
 			}

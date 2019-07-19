@@ -51,7 +51,7 @@ type Reddit struct {
 }
 
 // Fetch queries Reddit for new links
-func (s *Reddit) Fetch() ([]amalgam.Linker, error) {
+func (s *Reddit) Fetch() (*[]amalgam.Linker, error) {
 	log.Println("[REDDIT] querying reddit api...")
 	req, err := http.NewRequest("GET", s.APIURL, nil)
 	if err != nil {
@@ -79,10 +79,10 @@ func (s *Reddit) Fetch() ([]amalgam.Linker, error) {
 	}
 
 	links := make([]amalgam.Linker, len(*response))
-	for i, _ := range links {
+	for i := range links {
 		links[i] = (*response)[i]
 	}
-	return links, nil
+	return &links, nil
 }
 
 // Name is the name to display for the Reddit source

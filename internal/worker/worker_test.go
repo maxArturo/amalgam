@@ -15,10 +15,10 @@ type mockFetcher struct {
 	fetcherCount int
 	pending      chan *source
 	done         chan *source
-	updated      chan []amalgam.Linker
+	updated      chan *[]amalgam.Linker
 }
 
-func (f *mockFetcher) spawnFetchers(count int, pending chan *source, done chan *source, updated chan []amalgam.Linker) {
+func (f *mockFetcher) spawnFetchers(count int, pending chan *source, done chan *source, updated chan *[]amalgam.Linker) {
 	f.fetcherCount = count
 	f.pending = pending
 	f.done = done
@@ -39,11 +39,11 @@ type mockProvider struct {
 	returnFetchErr bool
 }
 
-func (f mockProvider) Fetch() ([]amalgam.Linker, error) {
+func (f mockProvider) Fetch() (*[]amalgam.Linker, error) {
 	if f.returnFetchErr {
 		return nil, errors.New("mock error")
 	}
-	return []amalgam.Linker{}, nil
+	return &[]amalgam.Linker{}, nil
 }
 func (f mockProvider) Name() string {
 	return "Mock Provider"
@@ -57,7 +57,7 @@ func TestFetchJob_Start(t *testing.T) {
 		sleeper       sleeper
 	}
 	type args struct {
-		providers []amalgam.Provider
+		providers *[]amalgam.Provider
 	}
 
 	tests := []struct {
@@ -79,7 +79,7 @@ func TestFetchJob_Start(t *testing.T) {
 				fetcher: &mockFetcher{},
 				sleeper: &mockSleeper{},
 			},
-			args: args{providers: []amalgam.Provider{
+			args: args{providers: &[]amalgam.Provider{
 				mockProvider{},
 				mockProvider{},
 				mockProvider{},
@@ -105,7 +105,7 @@ func TestFetchJob_Start(t *testing.T) {
 			assert.True(t, reflect.DeepEqual(tt.fields.fetcher.(*mockFetcher).done, tt.fields.sleeper.(*mockSleeper).done))
 
 			if tt.flexChannels {
-				for _, p := range tt.args.providers {
+				for _, p := range *tt.args.providers {
 					nextSource := <-pendingChan
 					assert.Equal(t, nextSource.provider, p)
 				}

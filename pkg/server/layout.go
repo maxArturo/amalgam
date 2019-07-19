@@ -46,16 +46,17 @@ func frontPageHandler(newContent chan *map[string][]amalgam.Linker) func(w http.
 type linkView struct{}
 
 // contentHandler parses out all links from a given Provider when it updates.
-func (l *linkView) newHandler(in chan []amalgam.Linker) func(w http.ResponseWriter, r *http.Request) {
+func (l *linkView) newHandler(in chan *[]amalgam.Linker) func(w http.ResponseWriter, r *http.Request) {
 	out := make(chan *map[string][]amalgam.Linker)
 	latestLinks := make(map[string][]amalgam.Linker)
 
 	go func() {
 		for s := range in {
-			if linkLen := len(s); linkLen != 0 {
+			src := *s
+			if linkLen := len(src); linkLen != 0 {
 
-				name := s[0].Source()
-				latestLinks[name] = s
+				name := src[0].Source()
+				latestLinks[name] = src
 
 				out <- &latestLinks
 			}
