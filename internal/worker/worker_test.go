@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -34,13 +35,18 @@ func (f *mockSleeper) sleepSources(done chan *source, pending chan *source, dura
 	f.pending = pending
 }
 
-type mockProvider struct{}
+type mockProvider struct {
+	returnFetchErr bool
+}
 
 func (f mockProvider) Fetch() ([]amalgam.Linker, error) {
+	if f.returnFetchErr {
+		return nil, errors.New("mock error")
+	}
 	return []amalgam.Linker{}, nil
 }
 func (f mockProvider) Name() string {
-	return ""
+	return "Mock Provider"
 }
 
 func TestFetchJob_Start(t *testing.T) {

@@ -25,9 +25,9 @@ func (f *fetchProvider) fetch(label int, in chan *source, out chan *source, cont
 			src.errCount++
 		} else {
 			src.errCount = 0
+			content <- newLinks
 		}
 
-		content <- newLinks
 		out <- src
 	}
 }
