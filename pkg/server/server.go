@@ -24,24 +24,41 @@ type portResolver interface {
 	ResolveAddress(addr string) string
 }
 
+type httpServer interface {
+	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
+	ListenAndServe(addr string, handler http.Handler) error
+}
+
 // Server is the main Amalgam news aggregator.
 type Server struct {
-	queue        fetcher
-	layoutRender layoutHandler
+	fetcher
+	layoutHandler
 	portResolver
+	httpServer
 	defaultProviders *[]amalgam.Provider
+}
+
+type osHTTPMux struct{}
+
+func (m *osHTTPMux) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	http.HandleFunc(pattern, handler)
+}
+
+func (m *osHTTPMux) ListenAndServe(addr string, handler http.Handler) error {
+	return http.ListenAndServe(addr, handler)
 }
 
 // New creates a configured server.
 func New() *Server {
 	return &Server{
-		queue:        worker.New(),
-		layoutRender: &linkView{},
-		portResolver: util.New(),
+		fetcher:       worker.New(),
+		layoutHandler: &linkView{},
+		portResolver:  util.New(),
 		defaultProviders: &[]amalgam.Provider{
 			reddit.New(),
 			hackernews.New(),
 		},
+		httpServer: &osHTTPMux{},
 	}
 }
 
@@ -53,11 +70,11 @@ func (s *Server) Run(port string, sources ...amalgam.Provider) {
 		providers = s.defaultProviders
 	}
 
-	updated := s.queue.Start(providers)
+	updated := s.fetcher.Start(providers)
 
 	// handle new content coming in
-	handler := s.layoutRender.newHandler(updated)
+	handler := s.layoutHandler.newHandler(updated)
 
-	http.HandleFunc("/", handler)
-	log.Fatal(http.ListenAndServe(s.portResolver.ResolveAddress(port), nil))
+	s.httpServer.HandleFunc("/", handler)
+	log.Fatal(s.httpServer.ListenAndServe(s.portResolver.ResolveAddress(port), nil))
 }
