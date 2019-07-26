@@ -24,6 +24,16 @@ type portResolver interface {
 	ResolveAddress(addr string) string
 }
 
+type logger interface {
+	fatal(v ...interface{})
+}
+
+type osLogger struct{}
+
+func (f *osLogger) fatal(v ...interface{}) {
+	log.Fatal(v...)
+}
+
 type httpServer interface {
 	HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request))
 	ListenAndServe(addr string, handler http.Handler) error
@@ -35,6 +45,7 @@ type Server struct {
 	layoutHandler
 	portResolver
 	httpServer
+	logger
 	defaultProviders *[]amalgam.Provider
 }
 
@@ -59,22 +70,23 @@ func New() *Server {
 			hackernews.New(),
 		},
 		httpServer: &osHTTPMux{},
+		logger:     &osLogger{},
 	}
 }
 
 // Run starts the amalgam server.
 func (s *Server) Run(port string, sources ...amalgam.Provider) {
-	providers := &sources
+	providers := sources
 	if len(sources) == 0 {
 		log.Println("No providers given. Using default news sources...")
-		providers = s.defaultProviders
+		providers = *s.defaultProviders
 	}
 
-	updated := s.fetcher.Start(providers)
+	updated := s.fetcher.Start(&providers)
 
 	// handle new content coming in
 	handler := s.layoutHandler.newHandler(updated)
 
 	s.httpServer.HandleFunc("/", handler)
-	log.Fatal(s.httpServer.ListenAndServe(s.portResolver.ResolveAddress(port), nil))
+	s.logger.fatal(s.httpServer.ListenAndServe(s.portResolver.ResolveAddress(port), nil))
 }
