@@ -127,11 +127,12 @@
         font-family: Menlo, Monaco, "Courier New", monospace;
       }
       code {
-        padding: .25em .5em;
-        font-size: 85%;
         color: #bf616a;
-        background-color: #f9f9f9;
-        border-radius: 3px;
+        background-color: #939393;
+        border-radius: 5px;
+      }
+      code a {
+        color: white;
       }
       pre {
         display: block;
@@ -212,17 +213,17 @@
       table {
         margin-bottom: 1rem;
         width: 100%;
-        border: 1px solid #e5e5e5;
+        border: none;
         border-collapse: collapse;
+        font-size: 1.3rem;
       }
       td,
       th {
         padding: .25rem .5rem;
-        border: 1px solid #e5e5e5;
       }
       tbody tr:nth-child(odd) td,
       tbody tr:nth-child(odd) th {
-        background-color: #f9f9f9;
+        background-color: #f0f0f0;
       }
 
 
@@ -266,7 +267,6 @@
         margin-left:  auto;
         margin-right: auto;
       }
-
 
       /*
       * Masthead
@@ -408,18 +408,20 @@
     <div class="container">
       <h1>Latest Links</h1>
       {{ range $_ , $source := . }}
-        <h2>{{ $source.SourceName }}</h2>
-        <p>last updated at {{ $source.LastUpdated}}</p>
+        <h2 class="masthead-title">{{ $source.SourceName }}
+        <small>last updated at {{ $source.LastUpdated}}</small>
+        </h2>
 
-        <ul>
-            {{ range $source.Links }}
-            <li>
+        <table>
+          {{ range $source.Links }}
+            <tr>
+              <td>
                 <a href="{{.URL}}">{{.Title}}</a>.
                 <code><a href="{{.CommentsURL}}"> [{{.CommentCount}}]</a></code>
-            </li>
-            {{ end }}
-        </ul>
-
+              </td>
+            </tr>
+          {{ end }}
+        </table>
       {{ end }}
     </div>
   </body>
