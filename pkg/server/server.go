@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/maxArturo/amalgam/internal/link"
 	"github.com/maxArturo/amalgam/internal/provider/hackernews"
 	"github.com/maxArturo/amalgam/internal/provider/reddit"
 	"github.com/maxArturo/amalgam/internal/util"
@@ -13,11 +14,11 @@ import (
 )
 
 type fetcher interface {
-	Start(providers *[]amalgam.Provider) chan *[]amalgam.Linker
+	Start(providers *[]amalgam.Provider) chan *[]link.RenderedLinker
 }
 
 type layoutHandler interface {
-	newHandler(in chan *[]amalgam.Linker) func(w http.ResponseWriter, r *http.Request)
+	newHandler(in chan *[]link.RenderedLinker) func(w http.ResponseWriter, r *http.Request)
 }
 
 type portResolver interface {

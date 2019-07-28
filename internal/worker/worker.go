@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/maxArturo/amalgam"
+	"github.com/maxArturo/amalgam/internal/link"
 	"github.com/maxArturo/amalgam/internal/util"
 )
 
@@ -19,7 +20,7 @@ type source struct {
 }
 
 type fetcher interface {
-	spawnFetchers(count int, pending chan *source, done chan *source, updated chan *[]amalgam.Linker)
+	spawnFetchers(count int, pending chan *source, done chan *source, updated chan *[]link.RenderedLinker)
 }
 
 type sleeper interface {
@@ -57,10 +58,11 @@ func New() *FetchJob {
 }
 
 // Start kicks off workers to fetch new content.
-func (f *FetchJob) Start(providers *[]amalgam.Provider) chan *[]amalgam.Linker {
+func (f *FetchJob) Start(providers *[]amalgam.Provider) chan *[]link.RenderedLinker {
 	// create our pending/done/new content channels
-	pending, done, updated := make(chan *source),
-		make(chan *source), make(chan *[]amalgam.Linker)
+	pending, done := make(chan *source),
+		make(chan *source)
+	updated := make(chan *[]link.RenderedLinker)
 
 	f.fetcher.spawnFetchers(f.numFetchers, pending, done, updated)
 

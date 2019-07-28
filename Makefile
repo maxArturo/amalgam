@@ -2,10 +2,10 @@ PORT=8000
 
 all: clean test amalgam run
 
-amalgam:
+amalgam: clean
 	go build -o amalgam ./cmd/amalgam/main.go
 
-run:
+run: amalgam
 	PORT=$(PORT) ./amalgam
 
 clean:
