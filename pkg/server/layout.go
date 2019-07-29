@@ -2,6 +2,7 @@ package server
 
 import (
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -28,6 +29,7 @@ func frontPageHandler(newContent chan *map[string][]link.RenderedLinker) func(w 
 		for content := range newContent {
 			latestContent = []linkLayout{}
 			for source, links := range *content {
+				log.Println(len(links))
 				latestContent = append(latestContent, linkLayout{
 					SourceName:  source,
 					Links:       links,
@@ -55,7 +57,7 @@ func (l *linkView) newHandler(in chan *[]link.RenderedLinker) func(w http.Respon
 			src := *s
 			if linkLen := len(src); linkLen != 0 {
 
-				name := src[0].Link().Source()
+				name := src[0].Source()
 				latestLinks[name] = src
 
 				out <- &latestLinks

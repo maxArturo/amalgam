@@ -26,8 +26,8 @@ func (f *fetchProvider) fetch(label int, in chan *source, out chan *source, cont
 		} else {
 			src.errCount = 0
 			extractedLinks := make([]link.RenderedLinker, len(*newLinks))
-			for _, l := range *newLinks {
-				extractedLinks = append(extractedLinks, link.RenderedLinker(link.New(l)))
+			for i := range extractedLinks {
+				extractedLinks[i] = link.New((*newLinks)[i])
 			}
 			content <- &extractedLinks
 		}
