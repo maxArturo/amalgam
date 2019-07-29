@@ -416,8 +416,8 @@
           {{ range $source.Links }}
             <tr>
               <td>
-                <a href="{{URL}}">{{Title}}</a>.
-                <code><a href="{{CommentsURL}}"> [{{CommentCount}}]</a></code>
+                <a href="{{.URL}}">{{.Title}}</a>.
+                <code><a href="{{.CommentsURL}}"> [{{.CommentCount}}]</a></code>
               </td>
             </tr>
           {{ end }}

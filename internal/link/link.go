@@ -20,8 +20,8 @@ type RenderedLink struct {
 	readability.Article
 }
 
-func New(link amalgam.Linker) *RenderedLink {
-	return &RenderedLink{
+func New(link amalgam.Linker) RenderedLink {
+	return RenderedLink{
 		source:       link.Source(),
 		title:        link.Title(),
 		url:          link.URL(),
@@ -30,26 +30,26 @@ func New(link amalgam.Linker) *RenderedLink {
 	}
 }
 
-func (l *RenderedLink) Source() string {
+func (l RenderedLink) Source() string {
 	return l.source
 }
 
-func (l *RenderedLink) Title() string {
+func (l RenderedLink) Title() string {
 	return l.title
 }
 
-func (l *RenderedLink) URL() string {
+func (l RenderedLink) URL() string {
 	return l.url
 }
 
-func (l *RenderedLink) CommentsURL() string {
+func (l RenderedLink) CommentsURL() string {
 	return l.commentsURL
 }
 
-func (l *RenderedLink) CommentCount() int {
+func (l RenderedLink) CommentCount() int {
 	return l.commentCount
 }
 
-func (l *RenderedLink) ParsedText() string {
+func (l RenderedLink) ParsedText() string {
 	return l.TextContent
 }
