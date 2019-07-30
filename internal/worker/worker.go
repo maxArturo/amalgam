@@ -13,18 +13,14 @@ const defaultFetchInterval = 30
 const defaultNumFetchers = 3
 
 // Source holds together a provider and its latest links, along with some stats.
-type source struct {
+type Source struct {
 	provider    amalgam.Provider
 	errCount    int
 	lastUpdated time.Time
 }
 
 type fetcher interface {
-	spawnFetchers(count int, pending chan *source, done chan *source, updated chan *[]link.RenderedLinker)
-}
-
-type sleeper interface {
-	sleepSources(done chan *source, pending chan *source, duration time.Duration)
+	spawnFetcher(count int, pending chan *Source, done chan *Source, updated chan *[]link.RenderedLinker, interval time.Duration)
 }
 
 // FetchJob contains the config needed for fetching provider links.
@@ -32,7 +28,6 @@ type FetchJob struct {
 	fetchInterval int
 	numFetchers   int
 	fetcher
-	sleeper
 }
 
 // New creates a configured FetchJob ready to use.
@@ -52,28 +47,25 @@ func New() *FetchJob {
 	return &FetchJob{
 		fetchInterval: fetchInterval,
 		numFetchers:   numFetchers,
-		fetcher:       &fetchProvider{},
-		sleeper:       newSleepProvider(),
+		fetcher:       &SourceFetch{},
 	}
 }
 
 // Start kicks off workers to fetch new content.
 func (f *FetchJob) Start(providers *[]amalgam.Provider) chan *[]link.RenderedLinker {
 	// create our pending/done/new content channels
-	pending, done := make(chan *source),
-		make(chan *source)
+	pending, done := make(chan *Source),
+		make(chan *Source)
 	updated := make(chan *[]link.RenderedLinker)
 
-	f.fetcher.spawnFetchers(f.numFetchers, pending, done, updated)
-
-	f.sleeper.sleepSources(done, pending, time.Duration(f.fetchInterval)*time.Second)
+	f.fetcher.spawnFetcher(f.numFetchers, pending, done, updated, time.Duration(f.fetchInterval)*time.Second)
 
 	go func() {
 		for _, provider := range *providers {
-			source := &source{
+			Source := &Source{
 				provider: provider,
 			}
-			pending <- source
+			pending <- Source
 		}
 	}()
 

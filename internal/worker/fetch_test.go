@@ -11,20 +11,20 @@ import (
 func Test_fetchProvider_fetch(t *testing.T) {
 	tests := []struct {
 		name        string
-		f           *fetchProvider
+		f           *SourceFetch
 		source      *source
 		sourceFails bool
 	}{
 		{
 			name: "fetches source normally",
-			f:    &fetchProvider{},
+			f:    &SourceFetch{},
 			source: &source{
 				provider: &mockProvider{},
 			},
 		},
 		{
 			name: "adds error count when fetch fails",
-			f:    &fetchProvider{},
+			f:    &SourceFetch{},
 			source: &source{
 				provider: &mockProvider{
 					returnFetchErr: true,

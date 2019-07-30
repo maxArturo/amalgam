@@ -18,7 +18,7 @@ type mockFetcher struct {
 	updated      chan *[]amalgam.Linker
 }
 
-func (f *mockFetcher) spawnFetchers(count int, pending chan *source, done chan *source, updated chan *[]amalgam.Linker) {
+func (f *mockFetcher) spawnFetcher(count int, pending chan *source, done chan *source, updated chan *[]amalgam.Linker) {
 	f.fetcherCount = count
 	f.pending = pending
 	f.done = done
