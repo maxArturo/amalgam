@@ -1,14 +1,19 @@
 package link
 
 import (
+	b64 "encoding/base64"
+	"time"
+
 	"github.com/maxArturo/amalgam"
 
 	"github.com/go-shiori/go-readability"
 )
 
 type RenderedLinker interface {
-	amalgam.Linker
 	ParsedText() string
+	Hash() string
+	FetchedAt() time.Time
+	amalgam.Linker
 }
 
 type RenderedLink struct {
@@ -17,6 +22,8 @@ type RenderedLink struct {
 	url          string
 	commentsURL  string
 	commentCount int
+	hash         string
+	fetchedAt    time.Time
 	readability.Article
 }
 
@@ -27,6 +34,8 @@ func New(link amalgam.Linker) RenderedLink {
 		url:          link.URL(),
 		commentsURL:  link.CommentsURL(),
 		commentCount: link.CommentCount(),
+		hash:         b64.StdEncoding.EncodeToString([]byte(link.URL())),
+		fetchedAt:    time.Now(),
 	}
 }
 
@@ -52,4 +61,12 @@ func (l RenderedLink) CommentCount() int {
 
 func (l RenderedLink) ParsedText() string {
 	return l.TextContent
+}
+
+func (l RenderedLink) Hash() string {
+	return l.hash
+}
+
+func (l RenderedLink) FetchedAt() time.Time {
+	return l.fetchedAt
 }
