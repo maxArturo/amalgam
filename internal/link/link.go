@@ -27,54 +27,54 @@ type RenderedLink struct {
 	commentCount int
 	hash         string
 	fetchedAt    time.Time
-	readability.Article
+	content      string
 }
 
-func New(link amalgam.Linker) RenderedLink {
-	return RenderedLink{
+func New(link amalgam.Linker) *RenderedLink {
+	return &RenderedLink{
 		source:       link.Source(),
 		title:        link.Title(),
 		url:          link.URL(),
 		commentsURL:  link.CommentsURL(),
 		commentCount: link.CommentCount(),
-		hash:         b64.StdEncoding.EncodeToString([]byte(link.URL())),
+		hash:         b64.URLEncoding.EncodeToString([]byte(link.URL())),
 		fetchedAt:    time.Now(),
 	}
 }
 
-func (l RenderedLink) Source() string {
+func (l *RenderedLink) Source() string {
 	return l.source
 }
 
-func (l RenderedLink) Title() string {
+func (l *RenderedLink) Title() string {
 	return l.title
 }
 
-func (l RenderedLink) URL() string {
+func (l *RenderedLink) URL() string {
 	return l.url
 }
 
-func (l RenderedLink) CommentsURL() string {
+func (l *RenderedLink) CommentsURL() string {
 	return l.commentsURL
 }
 
-func (l RenderedLink) CommentCount() int {
+func (l *RenderedLink) CommentCount() int {
 	return l.commentCount
 }
 
-func (l RenderedLink) LinkText() string {
-	return l.TextContent
+func (l *RenderedLink) LinkText() string {
+	return l.content
 }
 
-func (l RenderedLink) Hash() string {
+func (l *RenderedLink) Hash() string {
 	return l.hash
 }
 
-func (l RenderedLink) FetchedAt() time.Time {
+func (l *RenderedLink) FetchedAt() time.Time {
 	return l.fetchedAt
 }
 
-func (l RenderedLink) FetchLinkText() {
+func (l *RenderedLink) FetchLinkText() {
 	url := l.URL()
 	resp, err := http.Get(url)
 	if err != nil {
@@ -89,5 +89,5 @@ func (l RenderedLink) FetchLinkText() {
 		return
 	}
 
-	l.Article = article
+	l.content = article.Content
 }

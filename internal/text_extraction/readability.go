@@ -5,27 +5,30 @@ import (
 	"github.com/maxArturo/amalgam/internal/link"
 )
 
-type Extract struct{}
-
-func New() *Extract {
-	return &Extract{}
+type Extract struct {
+	c cache.Cacher
 }
 
-func (e *Extract) extract(c cache.Cacher, pending chan link.RenderedLinker, done chan cache.Cacher) {
+func New(c cache.Cacher) *Extract {
+	return &Extract{
+		c,
+	}
+}
+
+func (e *Extract) extract(pending chan link.RenderedLinker, done chan cache.Cacher) {
 	for incomingLink := range pending {
-		_, found := c.Get(incomingLink.Hash())
+		_, found := e.c.Get(incomingLink.Hash())
 		if !found {
 			incomingLink.FetchLinkText()
-			c.Set(incomingLink.Hash(), incomingLink)
+			e.c.Set(incomingLink.Hash(), incomingLink)
 
-			done <- c
+			done <- e.c
 		}
 	}
 }
 
 func (e *Extract) SpawnExtractor(count int, pending chan link.RenderedLinker, done chan cache.Cacher) {
-	c := cache.New()
 	for i := 0; i < count; i++ {
-		go e.extract(c, pending, done)
+		go e.extract(pending, done)
 	}
 }

@@ -35,7 +35,7 @@ type FetchJob struct {
 }
 
 // New creates a configured FetchJob ready to use.
-func New() *FetchJob {
+func New(c cache.Cacher) *FetchJob {
 	utilService := util.New()
 	fetchInterval, err := utilService.GetEnvVarInt("FETCH_INTERVAL")
 	if err != nil {
@@ -60,7 +60,7 @@ func New() *FetchJob {
 		numFetchers:   numFetchers,
 		numExtractors: numExtractors,
 		fetcher:       fetch.New(),
-		extractor:     extraction.New(),
+		extractor:     extraction.New(c),
 	}
 }
 
