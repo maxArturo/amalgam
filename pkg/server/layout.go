@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/maxArturo/amalgam/internal/cache"
+
 	"github.com/maxArturo/amalgam/internal/link"
 )
 
@@ -46,20 +48,22 @@ func frontPageHandler(newContent chan *map[string][]link.RenderedLinker) func(w 
 type linkView struct{}
 
 // contentHandler parses out all links from a given Provider when it updates.
-func (l *linkView) newHandler(in chan *[]link.RenderedLinker) func(w http.ResponseWriter, r *http.Request) {
+func (l *linkView) newHandler(in chan cache.Cacher) func(w http.ResponseWriter, r *http.Request) {
 	out := make(chan *map[string][]link.RenderedLinker)
-	latestLinks := make(map[string][]link.RenderedLinker)
 
 	go func() {
-		for s := range in {
-			src := *s
-			if linkLen := len(src); linkLen != 0 {
+		for c := range in {
+			items := c.Items()
+			latestLinks := make(map[string][]link.RenderedLinker)
 
-				name := src[0].Source()
-				latestLinks[name] = src
-
-				out <- &latestLinks
+			for _, item := range items {
+				if found := latestLinks[item.Source()]; found == nil {
+					latestLinks[item.Source()] = []link.RenderedLinker{}
+				}
+				latestLinks[item.Source()] = append(latestLinks[item.Source()], item)
 			}
+
+			out <- &latestLinks
 		}
 	}()
 	return frontPageHandler(out)

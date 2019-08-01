@@ -1,41 +1,31 @@
 package text_extraction
 
 import (
-	"sync"
-
+	"github.com/maxArturo/amalgam/internal/cache"
 	"github.com/maxArturo/amalgam/internal/link"
 )
 
-const MAX_LINKS = 500
-
-type linkCache struct {
-	sync.RWMutex
-	links      map[string]link.RenderedLinker
-	oldestLink string
-}
-
 type Extract struct{}
 
-func (e *Extract) extract(cache *linkCache, pending chan link.RenderedLinker, done chan link.RenderedLinker) {
+func New() *Extract {
+	return &Extract{}
+}
+
+func (e *Extract) extract(c cache.Cacher, pending chan link.RenderedLinker, done chan cache.Cacher) {
 	for incomingLink := range pending {
-		cache.RLock()
-		cachedLink := cache.links[incomingLink.Hash()]
-		cache.RUnlock()
+		_, found := c.Get(incomingLink.Hash())
+		if !found {
+			incomingLink.FetchLinkText()
+			c.Set(incomingLink.Hash(), incomingLink)
 
-		if cachedLink == nil {
-
-		} else {
-			done <- incomingLink
+			done <- c
 		}
 	}
 }
 
-func (e *Extract) SpawnExtractor(workerCount int, pending chan link.RenderedLinker, done chan link.RenderedLinker) {
-	cache := &linkCache{
-		links: make(map[string]link.RenderedLinker),
-	}
-
-	for i := 0; i < workerCount; i++ {
-		go e.extract(cache, pending, done)
+func (e *Extract) SpawnExtractor(count int, pending chan link.RenderedLinker, done chan cache.Cacher) {
+	c := cache.New()
+	for i := 0; i < count; i++ {
+		go e.extract(c, pending, done)
 	}
 }

@@ -2,6 +2,8 @@ package link
 
 import (
 	b64 "encoding/base64"
+	"log"
+	"net/http"
 	"time"
 
 	"github.com/maxArturo/amalgam"
@@ -10,9 +12,10 @@ import (
 )
 
 type RenderedLinker interface {
-	ParsedText() string
+	LinkText() string
 	Hash() string
 	FetchedAt() time.Time
+	FetchLinkText()
 	amalgam.Linker
 }
 
@@ -59,7 +62,7 @@ func (l RenderedLink) CommentCount() int {
 	return l.commentCount
 }
 
-func (l RenderedLink) ParsedText() string {
+func (l RenderedLink) LinkText() string {
 	return l.TextContent
 }
 
@@ -69,4 +72,22 @@ func (l RenderedLink) Hash() string {
 
 func (l RenderedLink) FetchedAt() time.Time {
 	return l.fetchedAt
+}
+
+func (l RenderedLink) FetchLinkText() {
+	url := l.URL()
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("failed to download %s: %v\n", url, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	article, err := readability.FromReader(resp.Body, url)
+	if err != nil {
+		log.Printf("failed to parse %s: %v\n", l.URL(), err)
+		return
+	}
+
+	l.Article = article
 }

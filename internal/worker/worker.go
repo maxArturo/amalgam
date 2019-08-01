@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"github.com/maxArturo/amalgam"
+	"github.com/maxArturo/amalgam/internal/cache"
 	"github.com/maxArturo/amalgam/internal/fetch"
 	"github.com/maxArturo/amalgam/internal/link"
 	"github.com/maxArturo/amalgam/internal/source"
+	extraction "github.com/maxArturo/amalgam/internal/text_extraction"
 	"github.com/maxArturo/amalgam/internal/util"
 )
 
@@ -20,7 +22,7 @@ type fetcher interface {
 }
 
 type extractor interface {
-	SpawnExtractor(count int, pending chan link.RenderedLinker, done chan link.RenderedLinker)
+	SpawnExtractor(count int, pending chan link.RenderedLinker, done chan cache.Cacher)
 }
 
 // FetchJob contains the config needed for fetching provider links.
@@ -49,7 +51,7 @@ func New() *FetchJob {
 
 	numExtractors, err := utilService.GetEnvVarInt("NUM_EXTRACTORS")
 	if err != nil {
-		numFetchers = defaultNumExtractors
+		numExtractors = defaultNumExtractors
 		log.Println(err)
 	}
 
@@ -58,17 +60,19 @@ func New() *FetchJob {
 		numFetchers:   numFetchers,
 		numExtractors: numExtractors,
 		fetcher:       fetch.New(),
+		extractor:     extraction.New(),
 	}
 }
 
 // Start kicks off workers to fetch new content.
-func (f *FetchJob) Start(providers *[]amalgam.Provider) chan link.RenderedLinker {
+func (f *FetchJob) Start(providers *[]amalgam.Provider) chan cache.Cacher {
 	// create our pending/done/new content channels
 	pendingSources, doneSources := make(chan *source.Source), make(chan *source.Source)
-	fetchedLinks, extractedLinks := make(chan link.RenderedLinker, f.numExtractors), make(chan link.RenderedLinker, f.numExtractors)
+	fetchedLinks := make(chan link.RenderedLinker, f.numExtractors)
+	updatedCache := make(chan cache.Cacher)
 
 	f.fetcher.SpawnFetcher(f.numFetchers, pendingSources, doneSources, fetchedLinks, time.Duration(f.fetchInterval)*time.Second)
-	f.extractor.SpawnExtractor(f.numExtractors, fetchedLinks, extractedLinks)
+	f.extractor.SpawnExtractor(f.numExtractors, fetchedLinks, updatedCache)
 
 	go func() {
 		for _, provider := range *providers {
@@ -79,5 +83,5 @@ func (f *FetchJob) Start(providers *[]amalgam.Provider) chan link.RenderedLinker
 		}
 	}()
 
-	return extractedLinks
+	return updatedCache
 }

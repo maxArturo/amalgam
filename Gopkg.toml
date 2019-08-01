@@ -44,3 +44,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/go-shiori/go-readability"
+
+[[constraint]]
+  name = "github.com/patrickmn/go-cache"
+  version = "2.1.0"
