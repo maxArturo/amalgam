@@ -4,6 +4,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/maxArturo/amalgam/internal/cache"
+	"github.com/maxArturo/amalgam/internal/handler"
+
 	"github.com/maxArturo/amalgam/internal/provider/hackernews"
 	"github.com/maxArturo/amalgam/internal/provider/reddit"
 	"github.com/maxArturo/amalgam/internal/util"
@@ -13,11 +16,11 @@ import (
 )
 
 type fetcher interface {
-	Start(providers *[]amalgam.Provider) chan *[]amalgam.Linker
+	Start(providers *[]amalgam.Provider) chan cache.Cacher
 }
 
 type layoutHandler interface {
-	newHandler(in chan *[]amalgam.Linker) func(w http.ResponseWriter, r *http.Request)
+	newHandler(in chan cache.Cacher) func(w http.ResponseWriter, r *http.Request)
 }
 
 type portResolver interface {
@@ -46,6 +49,7 @@ type Server struct {
 	portResolver
 	httpServer
 	logger
+	cacher           cache.Cacher
 	defaultProviders *[]amalgam.Provider
 }
 
@@ -61,14 +65,17 @@ func (m *osHTTPMux) ListenAndServe(addr string, handler http.Handler) error {
 
 // New creates a configured server.
 func New() *Server {
+	c := cache.New()
+
 	return &Server{
-		fetcher:       worker.New(),
+		fetcher:       worker.New(c),
 		layoutHandler: &linkView{},
 		portResolver:  util.New(),
 		defaultProviders: &[]amalgam.Provider{
 			reddit.New(),
 			hackernews.New(),
 		},
+		cacher:     c,
 		httpServer: &osHTTPMux{},
 		logger:     &osLogger{},
 	}
@@ -85,8 +92,9 @@ func (s *Server) Run(port string, sources ...amalgam.Provider) {
 	updated := s.fetcher.Start(&providers)
 
 	// handle new content coming in
-	handler := s.layoutHandler.newHandler(updated)
+	layout := s.layoutHandler.newHandler(updated)
 
-	s.httpServer.HandleFunc("/", handler)
+	s.httpServer.HandleFunc("/text/", handler.TextHandler(s.cacher))
+	s.httpServer.HandleFunc("/", layout)
 	s.logger.fatal(s.httpServer.ListenAndServe(s.portResolver.ResolveAddress(port), nil))
 }
