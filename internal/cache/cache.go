@@ -1,13 +1,15 @@
 package cache
 
 import (
+	"log"
 	"time"
 
 	"github.com/maxArturo/amalgam/internal/link"
+	"github.com/maxArturo/amalgam/internal/util"
 	"github.com/patrickmn/go-cache"
 )
 
-const DEFAULT_CACHE_EXPIRATION_HRS = 48 * time.Hour
+const defaultCacheExpiration = 24 * time.Hour
 
 type Cacher interface {
 	Items() map[string]link.RenderedLinker
@@ -20,8 +22,18 @@ type Cache struct {
 }
 
 func New() *Cache {
+	var cacheExpiration time.Duration
+	utilService := util.New()
+	cacheDurationVar, err := utilService.GetEnvVarInt("CACHE_EXPIRATION_HRS")
+	if err != nil {
+		cacheExpiration = defaultCacheExpiration
+		log.Println(err)
+	} else {
+		cacheExpiration = time.Duration(cacheDurationVar) * time.Hour
+	}
+
 	return &Cache{
-		c: cache.New(DEFAULT_CACHE_EXPIRATION_HRS, 10*time.Minute),
+		c: cache.New(cacheExpiration, 10*time.Minute),
 	}
 }
 
