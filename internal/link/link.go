@@ -1,7 +1,8 @@
 package link
 
 import (
-	b64 "encoding/base64"
+	"crypto/sha1"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -32,13 +33,17 @@ type RenderedLink struct {
 }
 
 func New(link amalgam.Linker) *RenderedLink {
+	h := sha1.New()
+	h.Write([]byte(link.URL()))
+	linkHash := h.Sum(nil)
+
 	return &RenderedLink{
 		source:       link.Source(),
 		title:        link.Title(),
 		url:          link.URL(),
 		commentsURL:  link.CommentsURL(),
 		commentCount: link.CommentCount(),
-		hash:         b64.URLEncoding.EncodeToString([]byte(link.URL())),
+		hash:         fmt.Sprintf("%x", linkHash),
 		fetchedAt:    time.Now(),
 	}
 }
