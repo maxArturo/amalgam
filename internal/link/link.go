@@ -2,6 +2,7 @@ package link
 
 import (
 	b64 "encoding/base64"
+	"html/template"
 	"log"
 	"net/http"
 	"time"
@@ -12,7 +13,7 @@ import (
 )
 
 type RenderedLinker interface {
-	LinkText() string
+	LinkText() template.HTML
 	Hash() string
 	FetchedAt() time.Time
 	FetchLinkText()
@@ -27,7 +28,7 @@ type RenderedLink struct {
 	commentCount int
 	hash         string
 	fetchedAt    time.Time
-	content      string
+	content      template.HTML
 }
 
 func New(link amalgam.Linker) *RenderedLink {
@@ -62,7 +63,7 @@ func (l *RenderedLink) CommentCount() int {
 	return l.commentCount
 }
 
-func (l *RenderedLink) LinkText() string {
+func (l *RenderedLink) LinkText() template.HTML {
 	return l.content
 }
 
@@ -89,5 +90,5 @@ func (l *RenderedLink) FetchLinkText() {
 		return
 	}
 
-	l.content = article.Content
+	l.content = template.HTML(article.Content)
 }
