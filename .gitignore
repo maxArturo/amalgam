@@ -18,3 +18,5 @@
 amalgam
 !amalgam/
 
+# vscode files
+.vscode
