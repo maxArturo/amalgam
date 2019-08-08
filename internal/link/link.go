@@ -18,6 +18,8 @@ type RenderedLinker interface {
 	Hash() string
 	FetchedAt() time.Time
 	FetchLinkText()
+	Excerpt() string
+	Image() string
 	amalgam.Linker
 }
 
@@ -30,6 +32,8 @@ type RenderedLink struct {
 	hash         string
 	fetchedAt    time.Time
 	content      template.HTML
+	excerpt      string
+	image        string
 }
 
 func New(link amalgam.Linker) *RenderedLink {
@@ -80,6 +84,14 @@ func (l *RenderedLink) FetchedAt() time.Time {
 	return l.fetchedAt
 }
 
+func (l *RenderedLink) Excerpt() string {
+	return l.excerpt
+}
+
+func (l *RenderedLink) Image() string {
+	return l.image
+}
+
 func (l *RenderedLink) FetchLinkText() {
 	url := l.URL()
 	resp, err := http.Get(url)
@@ -96,4 +108,6 @@ func (l *RenderedLink) FetchLinkText() {
 	}
 
 	l.content = template.HTML(article.Content)
+	l.excerpt = article.Excerpt
+	l.image = article.Image
 }
