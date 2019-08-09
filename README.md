@@ -7,4 +7,4 @@ Driving impetus is:
 * humble hosting requirements
 * Roll your own aggregation
 
-See the roadmap for some of my upcoming ideas.
+See the [roadmap](https://github.com/maxArturo/amalgam/wiki/Roadmap) for some of my upcoming ideas.
