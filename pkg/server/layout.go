@@ -3,8 +3,6 @@ package server
 import (
 	"html/template"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/maxArturo/amalgam/internal/cache"
@@ -19,8 +17,7 @@ type linkLayout struct {
 }
 
 func mainLayout() *template.Template {
-	cwd, _ := os.Executable()
-	return template.Must(template.ParseFiles(filepath.Join(filepath.Dir(cwd), "config/templates/main.html")))
+	return template.Must(template.ParseGlob("config/templates/main.html"))
 }
 
 func frontPageHandler(newContent chan *map[string][]link.RenderedLinker) func(w http.ResponseWriter, r *http.Request) {
